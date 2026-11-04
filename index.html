@@ -110,6 +110,11 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
     <div id="twitchUserCode" style="font-size:30px;font-weight:900;letter-spacing:5px;color:var(--mint);margin:5px 0 10px">--------</div>
     <a id="twitchActivateLink" href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer" style="color:var(--blue);font-weight:700">Ouvrir Twitch et saisir le code ↗</a>
     <div id="twitchDeviceExpiry" class="hint" style="margin-top:8px">Le code est temporaire.</div>
+    <div id="twitchConnectionStatus" class="hint" style="margin-top:10px;color:var(--blue)">En attente de ton autorisation Twitch…</div>
+    <div id="twitchProfile" class="hidden" style="margin-top:12px;align-items:center;gap:10px">
+      <img id="twitchAvatar" alt="" width="42" height="42" style="border-radius:50%">
+      <div><b id="twitchDisplayName"></b><div class="hint">Compte Twitch connecté</div></div>
+    </div>
   </div>
 </div>
     <div class="authmsg" id="authMsg">Connecte-toi pour envoyer tes modifications à l'overlay.</div></section>
@@ -542,12 +547,14 @@ async function startTwitchConnection(){
 
   const button = document.querySelector('#authInfo button.primary');
   if(button) button.disabled = true;
+  $('twitchDeviceBox').classList.add('hidden');
+  $('twitchProfile').classList.add('hidden');
 
   try{
     const {data,error} = await sb.auth.getSession();
     if(error) throw error;
-
     session = data.session;
+
     if(!session || !session.access_token){
       throw new Error('Connecte-toi d’abord à Supabase.');
     }
@@ -561,13 +568,11 @@ async function startTwitchConnection(){
         'apikey':SB_KEY,
         'Authorization':'Bearer ' + session.access_token
       },
-      body:JSON.stringify({})
+      body:JSON.stringify({action:'start'})
     });
 
     const result = await response.json();
-    if(!response.ok){
-      throw new Error(result.error || ('Erreur HTTP ' + response.status));
-    }
+    if(!response.ok) throw new Error(result.error || ('Erreur HTTP ' + response.status));
     if(!result.user_code || !result.verification_uri){
       throw new Error('Réponse Twitch incomplète : code utilisateur manquant.');
     }
@@ -581,12 +586,80 @@ async function startTwitchConnection(){
     $('twitchUserCode').textContent = result.user_code;
     $('twitchActivateLink').href = verificationUrl.href;
     $('twitchDeviceExpiry').textContent =
-      'Ce code expire dans environ ' + Math.ceil((result.expires_in||0)/60) + ' minute(s). Garde cette fenêtre ouverte.';
+      'Ce code expire dans environ ' + Math.ceil((result.expires_in||0)/60) + ' minute(s).';
     $('twitchDeviceBox').classList.remove('hidden');
-    authMsg('Code prêt ! Ouvre Twitch et saisis le code affiché ci-dessus.','ok');
+    $('twitchConnectionStatus').textContent =
+      'Autorise SCC sur Twitch. Vérification automatique en cours…';
+    authMsg('Code prêt ! Saisis-le sur Twitch. SCC attend ensuite automatiquement la confirmation.','ok');
+
+    pollTwitchAuthorization(
+      Math.max(5, Number(result.interval) || 5),
+      Date.now() + (Number(result.expires_in) || 1800) * 1000
+    );
   }catch(error){
     authMsg('Échec de la connexion Twitch : ' + (error.message || error),'err');
-  }finally{
+    if(button) button.disabled = false;
+  }
+}
+
+async function pollTwitchAuthorization(intervalSeconds, deadline){
+  const button = document.querySelector('#authInfo button.primary');
+
+  if(Date.now() >= deadline){
+    $('twitchConnectionStatus').textContent = 'Le code a expiré. Clique sur Connecter Twitch pour recommencer.';
+    authMsg('Le délai d’autorisation Twitch est dépassé.','err');
+    if(button) button.disabled = false;
+    return;
+  }
+
+  try{
+    const {data,error} = await sb.auth.getSession();
+    if(error) throw error;
+    session = data.session;
+    if(!session || !session.access_token) throw new Error('Session Supabase expirée. Reconnecte-toi.');
+
+    const response = await fetch(SB_URL + '/functions/v1/twitch-auth',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer ' + session.access_token
+      },
+      body:JSON.stringify({action:'poll'})
+    });
+
+    const result = await response.json();
+
+    if(result.status === 'pending'){
+      $('twitchConnectionStatus').textContent = 'Toujours en attente de ton autorisation Twitch…';
+      window.setTimeout(
+        () => pollTwitchAuthorization(Math.max(intervalSeconds, Number(result.retry_after)||0), deadline),
+        Math.max(intervalSeconds, Number(result.retry_after)||0) * 1000
+      );
+      return;
+    }
+
+    if(!response.ok) throw new Error(result.error || ('Erreur HTTP ' + response.status));
+
+    if(result.status === 'connected' && result.twitch){
+      $('twitchConnectionStatus').textContent = 'Connexion Twitch réussie ! 🎉';
+      $('twitchDisplayName').textContent = result.twitch.display_name || result.twitch.login;
+      if(result.twitch.profile_image_url){
+        $('twitchAvatar').src = result.twitch.profile_image_url;
+      }
+      $('twitchProfile').classList.remove('hidden');
+      $('twitchProfile').style.display = 'flex';
+      $('twitchDeviceExpiry').textContent = 'Ton compte Twitch est maintenant relié à SCC.';
+      $('twitchUserCode').textContent = 'CONNECTÉ';
+      authMsg('Twitch est connecté à SCC. Ton profil a bien été récupéré.','ok');
+      if(button) button.disabled = false;
+      return;
+    }
+
+    throw new Error(result.error || 'Réponse inattendue du serveur Twitch.');
+  }catch(error){
+    $('twitchConnectionStatus').textContent = 'La vérification a rencontré un problème.';
+    authMsg('Vérification Twitch : ' + (error.message || error),'err');
     if(button) button.disabled = false;
   }
 }
