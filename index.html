@@ -96,7 +96,16 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
       <label for="authPass">Mot de passe</label><input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••">
       <div class="btnrow"><button class="primary" id="loginBtn" onclick="login()">Se connecter</button></div>
     </div>
-    <div id="authInfo" class="hidden"><div class="toggleline"><span>Connecté en tant que</span><b id="authUser" style="color:var(--text)"></b></div><div class="btnrow"><button class="danger" onclick="logout()">Se déconnecter</button></div></div>
+  <div id="authInfo" class="hidden">
+  <div class="toggleline">
+    <span>Connecté en tant que</span>
+    <b id="authUser" style="color:var(--text)"></b>
+  </div>
+  <div class="btnrow">
+    <button class="primary" onclick="testTwitchAuth()">Tester l'authentification serveur</button>
+    <button class="danger" onclick="logout()">Se déconnecter</button>
+  </div>
+</div>
     <div class="authmsg" id="authMsg">Connecte-toi pour envoyer tes modifications à l'overlay.</div></section>
 
   <section class="panel"><div class="panelhead"><h2>ALERTES</h2><span class="pill">SYNCHRONISÉES</span></div>
@@ -519,6 +528,48 @@ async function logout(){
 }
 
 /* ----- actions ----- */
+  async function testTwitchAuth(){
+  if(!sb){
+    authMsg('Connexion Supabase indisponible.','err');
+    return;
+  }
+
+  try{
+    const {data,error} = await sb.auth.getSession();
+
+    if(error) throw error;
+
+    session = data.session;
+
+    if(!session?.access_token){
+      throw new Error('Connecte-toi d’abord à Supabase.');
+    }
+
+    const response = await fetch(
+      `${SB_URL}/functions/v1/twitch-auth`,
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'apikey':SB_KEY,
+          'Authorization':`Bearer ${session.access_token}`
+        },
+        body:JSON.stringify({})
+      }
+    );
+
+    const result = await response.json();
+
+    if(!response.ok){
+      throw new Error(result.error || `Erreur HTTP ${response.status}`);
+    }
+
+    authMsg(result.message || 'Authentification serveur réussie !','ok');
+
+  }catch(error){
+    authMsg(`Échec du test : ${error.message || error}`,'err');
+  }
+}
 function setScene(scene){
   const presets={
     gameplay:{message:'Bienvenue sur le live !',ticker:'Bonne session à tous ! • Pense à follow si le live te plaît',showText:true,showTicker:true,showGoal:true},
