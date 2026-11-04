@@ -102,8 +102,14 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
     <b id="authUser" style="color:var(--text)"></b>
   </div>
   <div class="btnrow">
-    <button class="primary" onclick="testTwitchAuth()">Tester l'authentification serveur</button>
+    <button class="primary" onclick="startTwitchConnection()">Connecter Twitch</button>
     <button class="danger" onclick="logout()">Se déconnecter</button>
+  </div>
+  <div id="twitchDeviceBox" class="hidden" style="margin-top:14px;padding:14px;background:#0c1421;border:1px solid var(--line);border-radius:10px">
+    <div style="color:var(--muted);font-size:11px;letter-spacing:1px">TON CODE D'AUTORISATION TWITCH</div>
+    <div id="twitchUserCode" style="font-size:30px;font-weight:900;letter-spacing:5px;color:var(--mint);margin:5px 0 10px">--------</div>
+    <a id="twitchActivateLink" href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer" style="color:var(--blue);font-weight:700">Ouvrir Twitch et saisir le code ↗</a>
+    <div id="twitchDeviceExpiry" class="hint" style="margin-top:8px">Le code est temporaire.</div>
   </div>
 </div>
     <div class="authmsg" id="authMsg">Connecte-toi pour envoyer tes modifications à l'overlay.</div></section>
@@ -528,48 +534,63 @@ async function logout(){
 }
 
 /* ----- actions ----- */
-  async function testTwitchAuth(){
+async function startTwitchConnection(){
   if(!sb){
     authMsg('Connexion Supabase indisponible.','err');
     return;
   }
 
+  const button = document.querySelector('#authInfo button.primary');
+  if(button) button.disabled = true;
+
   try{
     const {data,error} = await sb.auth.getSession();
-
     if(error) throw error;
 
     session = data.session;
-
-    if(!session?.access_token){
+    if(!session || !session.access_token){
       throw new Error('Connecte-toi d’abord à Supabase.');
     }
 
-    const response = await fetch(
-      `${SB_URL}/functions/v1/twitch-auth`,
-      {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'apikey':SB_KEY,
-          'Authorization':`Bearer ${session.access_token}`
-        },
-        body:JSON.stringify({})
-      }
-    );
+    authMsg('Préparation de la connexion Twitch…');
+
+    const response = await fetch(SB_URL + '/functions/v1/twitch-auth',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer ' + session.access_token
+      },
+      body:JSON.stringify({})
+    });
 
     const result = await response.json();
-
     if(!response.ok){
-      throw new Error(result.error || `Erreur HTTP ${response.status}`);
+      throw new Error(result.error || ('Erreur HTTP ' + response.status));
+    }
+    if(!result.user_code || !result.verification_uri){
+      throw new Error('Réponse Twitch incomplète : code utilisateur manquant.');
     }
 
-    authMsg(result.message || 'Authentification serveur réussie !','ok');
+    const verificationUrl = new URL(result.verification_uri);
+    if(verificationUrl.protocol !== 'https:' ||
+       !['twitch.tv','www.twitch.tv'].includes(verificationUrl.hostname)){
+      throw new Error('Adresse de vérification Twitch inattendue.');
+    }
 
+    $('twitchUserCode').textContent = result.user_code;
+    $('twitchActivateLink').href = verificationUrl.href;
+    $('twitchDeviceExpiry').textContent =
+      'Ce code expire dans environ ' + Math.ceil((result.expires_in||0)/60) + ' minute(s). Garde cette fenêtre ouverte.';
+    $('twitchDeviceBox').classList.remove('hidden');
+    authMsg('Code prêt ! Ouvre Twitch et saisis le code affiché ci-dessus.','ok');
   }catch(error){
-    authMsg(`Échec du test : ${error.message || error}`,'err');
+    authMsg('Échec de la connexion Twitch : ' + (error.message || error),'err');
+  }finally{
+    if(button) button.disabled = false;
   }
 }
+
 function setScene(scene){
   const presets={
     gameplay:{message:'Bienvenue sur le live !',ticker:'Bonne session à tous ! • Pense à follow si le live te plaît',showText:true,showTicker:true,showGoal:true},
