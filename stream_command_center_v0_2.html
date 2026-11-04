@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101521">
+<title>SCC · Stream Command Center</title>
+<style>
+:root{--bg:#0b101a;--panel:#131c2b;--panel2:#192538;--line:#29384e;--text:#edf4ff;--muted:#8fa2bd;--blue:#82baff;--mint:#75e2c0;--violet:#b6a0ff;--amber:#ffbd76}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#1b2c43 0,transparent 38%),var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,textarea{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:#1b2940;color:var(--text);border-radius:10px;padding:10px 13px;transition:.16s}button:hover{border-color:var(--blue);transform:translateY(-1px)}button.primary{background:linear-gradient(120deg,#397dc2,#6758bd);border:0}button.danger{color:#ffaaaa}input,textarea{width:100%;background:#0c1421;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;outline:none}input:focus,textarea:focus{border-color:var(--blue)}label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
+.top{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;border-bottom:1px solid #243247;background:#0b111dd9;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#6ab7f7,#7662d2);display:grid;place-items:center;font-weight:900;color:#07111e;letter-spacing:-1px}.brand strong{letter-spacing:2px}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:1.8px}.status{color:var(--mint);font-size:11px;letter-spacing:1px}.status:before{content:"";display:inline-block;width:7px;height:7px;background:var(--mint);border-radius:50%;margin-right:8px;box-shadow:0 0 12px var(--mint)}
+.wrap{max-width:1380px;margin:auto;padding:26px}.intro{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:22px}.eyebrow{color:var(--blue);font-size:10px;letter-spacing:2px;font-weight:800}.intro h1{font-size:clamp(25px,4vw,36px);margin:5px 0}.intro p{margin:0;color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.stat,.panel{background:linear-gradient(145deg,#162236,#111a29);border:1px solid var(--line);border-radius:15px}.stat{padding:15px 17px}.stat span{color:var(--muted);font-size:11px;letter-spacing:1px}.stat strong{display:block;font-size:24px;margin-top:4px}.stat em{font-style:normal;color:var(--mint);font-size:11px}
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:16px}.panel{padding:18px;margin-bottom:16px}.panelhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.panel h2{font-size:14px;letter-spacing:1px;margin:0}.hint{color:var(--muted);font-size:11px}.preview{aspect-ratio:16/9;background:#080d16;border:1px solid #34445c;border-radius:11px;overflow:hidden;position:relative}.preview iframe{width:100%;height:100%;border:0}.previewfoot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:11px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.full{grid-column:1/-1}.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.toggleline{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #25344a;color:var(--muted)}.toggleline:last-child{border:0}.toggleline input{width:17px;accent-color:#75e2c0}.goalbar{height:8px;background:#26354a;border-radius:9px;overflow:hidden;margin:9px 0}.goalbar div{height:100%;width:60%;background:linear-gradient(90deg,#72baff,#79e2c0);border-radius:9px}.event{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #26354a}.event:last-child{border:0}.event b{font-size:12px}.event small{color:var(--muted)}.pill{font-size:10px;color:var(--mint);border:1px solid #315d59;border-radius:20px;padding:3px 8px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#233b50;border:1px solid #426582;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:20}.toast.show{opacity:1}
+.overlay{width:100vw;height:100vh;overflow:hidden;background:transparent;position:relative}.overlay .ticker{position:absolute;left:4%;right:4%;bottom:5%;height:38px;background:#101b2be8;border:1px solid #83baff66;border-radius:8px;display:flex;align-items:center;overflow:hidden;color:white;font-weight:650;letter-spacing:.3px}.ticker .tag{background:#82baff;color:#081321;height:100%;display:grid;place-items:center;padding:0 15px;font-size:11px;letter-spacing:1px}.ticker .tickertext{white-space:nowrap;padding-left:18px;animation:scroll 20s linear infinite}.alertbox{position:absolute;top:7%;left:50%;transform:translateX(-50%) translateY(-15px);opacity:0;min-width:min(440px,88vw);padding:15px 20px;background:linear-gradient(110deg,#17283deF,#272247ef);border:1px solid #a6caff99;border-radius:14px;box-shadow:0 12px 40px #0008;text-align:center;transition:.35s}.alertbox.show{opacity:1;transform:translateX(-50%) translateY(0)}.alertbox .alerttitle{font-size:11px;color:#9dcaff;letter-spacing:2px}.alertbox .alertname{font-size:24px;font-weight:850;margin-top:2px}.alertbox .alertsub{font-size:12px;color:#bdcbe0}.liveText{position:absolute;top:7%;left:4%;max-width:45%;padding:10px 15px;background:#111b2bd9;border-left:3px solid #b6a0ff;border-radius:4px;font-weight:750;font-size:clamp(14px,2vw,24px);text-shadow:0 2px 6px #000}.goalwidget{position:absolute;right:4%;top:7%;width:min(260px,35vw);padding:12px 14px;background:#111b2be8;border:1px solid #75e2c077;border-radius:10px}.goalwidget .gtop{display:flex;justify-content:space-between;font-size:12px;font-weight:750}.goalwidget .gsub{color:#a9b9ce;font-size:10px;margin-top:3px}.goalwidget .gbar{height:7px;background:#344258;border-radius:8px;margin-top:9px;overflow:hidden}.goalwidget .gbar div{height:100%;background:linear-gradient(90deg,#75e2c0,#82baff)}.lastfollow{position:absolute;left:4%;bottom:13%;background:#111b2be8;border:1px solid #82baff66;padding:9px 13px;border-radius:9px;color:#eaf3ff;font-size:12px}.lastfollow b{color:#82baff}.hidden{display:none!important}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-45%)}}
+@media(max-width:850px){.wrap{padding:16px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.intro{align-items:start;flex-direction:column}.top{padding:0 15px}}
+@media(max-width:480px){.fields{grid-template-columns:1fr}.full{grid-column:auto}.actions button{flex:1}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<div id="dashboard">
+<header class="top"><div class="brand"><div class="logo">SCC</div><div><strong>STREAM COMMAND CENTER</strong><small>PERSONAL STREAM CONTROL</small></div></div><div class="status">LOCAL PROTOTYPE</div></header>
+<main class="wrap">
+<section class="intro"><div><div class="eyebrow">CONTROL ROOM / VERSION 0.1</div><h1>Ton stream. Tes règles.</h1><p>Configure tes éléments, teste tes alertes et observe le rendu en direct.</p></div><div class="actions"><button onclick="openOverlay()">↗ Ouvrir l'overlay</button><button class="primary" onclick="saveState()">Enregistrer les réglages</button></div></section>
+<section class="stats">
+<div class="stat"><span>DERNIER FOLLOWER</span><strong id="statFollower">Zamilone</strong><em>● Valeur de démonstration</em></div>
+<div class="stat"><span>OBJECTIF FOLLOWERS</span><strong id="statGoal">12 / 20</strong><em>Progression simulée</em></div>
+<div class="stat"><span>ÉLÉMENTS ACTIFS</span><strong id="statActive">5</strong><em>Widgets de l'overlay</em></div>
+<div class="stat"><span>ÉTAT DU SYSTÈME</span><strong style="font-size:19px">Prototype</strong><em>Synchronisation locale</em></div>
+</section>
+<div class="layout">
+<div>
+<section class="panel"><div class="panelhead"><h2>APERÇU LIVE · 16:9</h2><span class="pill">1080P READY</span></div><div class="preview"><iframe id="previewFrame" title="Aperçu de l'overlay"></iframe></div><div class="previewfoot"><span>APERÇU LOCAL · FOND TRANSPARENT</span><span>1920 × 1080</span></div></section>
+<section class="panel"><div class="panelhead"><h2>TEXTES DYNAMIQUES</h2><span class="hint">Affichage instantané</span></div><label>Message à afficher</label><input id="message" value="Bienvenue sur le live ! Installe-toi confortablement."><div class="toggleline"><span>Afficher le texte sur l'overlay</span><input id="showText" type="checkbox" checked></div><div class="btnrow"><button class="primary" onclick="apply()">Mettre à jour le texte</button><button onclick="document.getElementById('message').value='';apply()">Effacer</button></div></section>
+<section class="panel"><div class="panelhead"><h2>BANDEAU DÉFILANT</h2><span class="hint">Ticker inférieur</span></div><label>Contenu du bandeau</label><input id="ticker" value="Bienvenue ! Pense à follow si le live te plaît  •  Discord : bientôt  •  Bonne session à tous !"><div class="toggleline"><span>Afficher le bandeau</span><input id="showTicker" type="checkbox" checked></div><div class="btnrow"><button class="primary" onclick="apply()">Actualiser le bandeau</button></div></section>
+</div>
+<div>
+<section class="panel"><div class="panelhead"><h2>ALERTES</h2><span class="pill">MODE TEST</span></div><label>Nom affiché pour le test</label><input id="alertName" value="PixelNinja42"><div class="btnrow"><button class="primary" onclick="triggerAlert('follow')">♥ Tester un follow</button><button onclick="triggerAlert('sub')">✦ Tester un abonnement</button></div><p class="hint">Ces alertes sont simulées. Elles ne détectent pas encore les vrais événements Twitch.</p></section>
+<section class="panel"><div class="panelhead"><h2>DERNIER FOLLOWER</h2><span class="hint">Manuel en v0.1</span></div><label>Pseudo du dernier follower</label><input id="follower" value="Zamilone"><div class="toggleline"><span>Afficher le dernier follower</span><input id="showFollower" type="checkbox" checked></div><div class="btnrow"><button class="primary" onclick="updateFollower()">Mettre à jour</button></div></section>
+<section class="panel"><div class="panelhead"><h2>OBJECTIF COMMUNAUTÉ</h2><span class="hint">Compteur manuel</span></div><div class="fields"><div><label>Valeur actuelle</label><input id="goalCurrent" type="number" min="0" value="12"></div><div><label>Objectif</label><input id="goalTarget" type="number" min="1" value="20"></div><div class="full"><label>Titre de l'objectif</label><input id="goalTitle" value="Objectif followers"></div></div><div class="toggleline"><span>Afficher l'objectif</span><input id="showGoal" type="checkbox" checked></div><div class="btnrow"><button onclick="changeGoal(-1)">−1</button><button onclick="changeGoal(1)">+1 follower</button><button class="primary" onclick="apply()">Actualiser</button></div></section>
+<section class="panel"><div class="panelhead"><h2>SCÈNES & APPARENCE</h2><span class="hint">Personnalisation</span></div>
+<label>Scène active</label>
+<div class="btnrow">
+<button onclick="setScene('gameplay')">🎮 Gameplay</button>
+<button onclick="setScene('starting')">⏳ Starting</button>
+<button onclick="setScene('brb')">☕ BRB</button>
+<button onclick="setScene('ending')">🌙 Ending</button>
+</div>
+<label>Couleur principale</label>
+<div class="fields">
+<div><input id="accentColor" type="color" value="#82baff" style="height:42px;padding:4px"></div>
+<div><button class="primary" style="width:100%" onclick="applyAppearance()">Appliquer la couleur</button></div>
+</div>
+<label>Durée des alertes (secondes)</label>
+<input id="alertDuration" type="number" min="2" max="15" value="5">
+<div class="toggleline"><span>Son de test des alertes</span><input id="alertSound" type="checkbox" checked></div>
+<div class="btnrow"><button onclick="testSound()">♪ Tester le son</button></div>
+</section>
+<section class="panel"><div class="panelhead"><h2>WIDGETS DE L'OVERLAY</h2><span class="hint">Visibilité</span></div><div class="toggleline"><span>Textes</span><input type="checkbox" id="wText" checked onchange="syncWidgets()"></div><div class="toggleline"><span>Alertes</span><input type="checkbox" id="wAlert" checked onchange="syncWidgets()"></div><div class="toggleline"><span>Dernier follower</span><input type="checkbox" id="wFollower" checked onchange="syncWidgets()"></div><div class="toggleline"><span>Bandeau</span><input type="checkbox" id="wTicker" checked onchange="syncWidgets()"></div><div class="toggleline"><span>Objectif</span><input type="checkbox" id="wGoal" checked onchange="syncWidgets()"></div></section>
+</div></div>
+<footer class="hint" style="text-align:center;padding:8px 0 25px">SCC v0.2 · Prototype enrichi · Les données restent dans ce navigateur.</footer>
+</main></div>
+<div id="overlay" class="overlay hidden">
+<div id="sceneLabel" style="position:absolute;top:3%;right:4%;padding:6px 11px;border:1px solid #82baff66;border-radius:7px;background:#111b2be8;color:#82baff;font-size:10px;letter-spacing:2px;font-weight:800">GAMEPLAY</div>
+<div class="liveText" id="oText">Bienvenue sur le live ! Installe-toi confortablement.</div>
+<div class="goalwidget" id="oGoal"><div class="gtop"><span id="oGoalTitle">Objectif followers</span><span id="oGoalNums">12 / 20</span></div><div class="gsub">Chaque follow nous rapproche du but !</div><div class="gbar"><div id="oGoalBar" style="width:60%"></div></div></div>
+<div class="lastfollow" id="oFollower">♥ Dernier follower : <b id="oFollowerName">Zamilone</b></div>
+<div class="ticker" id="oTicker"><div class="tag">INFO</div><div class="tickertext" id="oTickerText">Bienvenue ! Pense à follow si le live te plaît</div></div>
+<div class="alertbox" id="alertBox"><div class="alerttitle" id="oAlertTitle">NOUVEAU FOLLOWER</div><div class="alertname" id="oAlertName">PixelNinja42</div><div class="alertsub" id="oAlertSub">Bienvenue dans la communauté !</div></div>
+</div>
+<div class="toast" id="toast">Réglages enregistrés</div>
+<script>
+const defaults={message:"Bienvenue sur le live ! Installe-toi confortablement.",showText:true,ticker:"Bienvenue ! Pense à follow si le live te plaît  •  Discord : bientôt  •  Bonne session à tous !",showTicker:true,follower:"Zamilone",showFollower:true,current:12,target:20,title:"Objectif followers",showGoal:true,scene:'gameplay',accent:'#82baff',alertDuration:5,alertSound:true,widgets:{text:true,alert:true,follower:true,ticker:true,goal:true}};
+let state={...defaults,widgets:{...defaults.widgets}};
+const $=id=>document.getElementById(id);
+function readForm(){state.message=$('message').value;state.showText=$('showText').checked;state.ticker=$('ticker').value;state.showTicker=$('showTicker').checked;state.follower=$('follower').value||'Anonyme';state.showFollower=$('showFollower').checked;state.current=Math.max(0,Number($('goalCurrent').value)||0);state.target=Math.max(1,Number($('goalTarget').value)||1);state.title=$('goalTitle').value||'Objectif';state.showGoal=$('showGoal').checked;state.widgets={text:$('wText').checked,alert:$('wAlert').checked,follower:$('wFollower').checked,ticker:$('wTicker').checked,goal:$('wGoal').checked};}
+function render(){document.documentElement.style.setProperty('--blue',state.accent||'#82baff');$('sceneLabel').textContent=(state.scene||'gameplay').toUpperCase();$('sceneLabel').style.color=state.accent||'#82baff';$('sceneLabel').style.borderColor=(state.accent||'#82baff')+'88'; $('oText').textContent=state.message;$('oText').classList.toggle('hidden',!(state.showText&&state.widgets.text));$('oTickerText').textContent=state.ticker+'     •     '+state.ticker;$('oTicker').classList.toggle('hidden',!(state.showTicker&&state.widgets.ticker));$('oFollowerName').textContent=state.follower;$('oFollower').classList.toggle('hidden',!(state.showFollower&&state.widgets.follower));$('oGoalTitle').textContent=state.title;$('oGoalNums').textContent=state.current+' / '+state.target;$('oGoalBar').style.width=Math.min(100,state.current/state.target*100)+'%';$('oGoal').classList.toggle('hidden',!(state.showGoal&&state.widgets.goal));$('statFollower').textContent=state.follower;$('statGoal').textContent=state.current+' / '+state.target;$('statActive').textContent=Object.values(state.widgets).filter(Boolean).length;}
+function apply(){readForm();render();broadcast();toast('Overlay actualisé');}
+function saveState(){apply();try{localStorage.setItem('scc-v02',JSON.stringify(state));toast('Réglages enregistrés dans ce navigateur');}catch(e){toast('Enregistrement indisponible');}}
+function updateFollower(){readForm();state.follower=$('follower').value||'Anonyme';render();broadcast();toast('Dernier follower mis à jour');}
+function changeGoal(n){$('goalCurrent').value=Math.max(0,(Number($('goalCurrent').value)||0)+n);apply();}
+function syncWidgets(){readForm();render();broadcast();}
+function triggerAlert(type){readForm();render();if(!state.widgets.alert){toast('Le widget Alertes est masqué');return;}const box=$('alertBox');$('oAlertTitle').textContent=type==='follow'?'NOUVEAU FOLLOWER':'NOUVEL ABONNEMENT';$('oAlertName').textContent=$('alertName').value||'Invité';$('oAlertSub').textContent=type==='follow'?'Bienvenue dans la communauté !':'Merci pour ton soutien !';box.classList.remove('show');void box.offsetWidth;box.classList.add('show');broadcast({alert:{type,name:$('alertName').value||'Invité',at:Date.now()}});if(state.alertSound)testSound();setTimeout(()=>box.classList.remove('show'),(state.alertDuration||5)*1000);}
+function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200);}
+function openOverlay(){const u=new URL(location.href);u.searchParams.set('overlay','1');window.open(u.toString(),'scc_overlay','width=1100,height=650');}
+function broadcast(extra={}){try{localStorage.setItem('scc-live-state',JSON.stringify({state,extra,at:Date.now()}));}catch(e){}}
+function setScene(scene){
+  state.scene=scene;
+  const presets={
+    gameplay:{message:'Bienvenue sur le live !',ticker:'Bonne session à tous ! • Pense à follow si le live te plaît',showText:true,showTicker:true,showGoal:true},
+    starting:{message:'Le live commence bientôt…',ticker:'Prépare-toi, on arrive ! • Starting Soon',showText:true,showTicker:true,showGoal:false},
+    brb:{message:'Petite pause, je reviens très vite !',ticker:'BRB • Ne bouge pas, le live reprend bientôt',showText:true,showTicker:true,showGoal:false},
+    ending:{message:'Merci d’avoir passé ce moment avec moi !',ticker:'Merci pour votre présence • À très bientôt !',showText:true,showTicker:true,showGoal:false}
+  };
+  const p=presets[scene];state={...state,...p};$('message').value=state.message;$('ticker').value=state.ticker;$('showText').checked=state.showText;$('showTicker').checked=state.showTicker;$('showGoal').checked=state.showGoal;render();broadcast();toast('Scène '+scene+' activée');
+}
+function applyAppearance(){
+  readForm();state.accent=$('accentColor').value;state.alertDuration=Math.max(2,Math.min(15,Number($('alertDuration').value)||5));state.alertSound=$('alertSound').checked;render();broadcast();toast('Apparence mise à jour');
+}
+function testSound(){
+  try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const osc=ctx.createOscillator();const gain=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(660,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(990,ctx.currentTime+.13);gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.02);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.35);osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.36);setTimeout(()=>ctx.close(),500);}catch(e){toast('Audio non disponible dans ce navigateur');}
+}
+function init(){if(new URLSearchParams(location.search).has('overlay')){$('dashboard').classList.add('hidden');$('overlay').classList.remove('hidden');document.body.style.background='transparent';try{const saved=JSON.parse(localStorage.getItem('scc-v02'));if(saved)state={...state,...saved,widgets:{...state.widgets,...saved.widgets}};}catch(e){}render();window.addEventListener('storage',e=>{if(e.key==='scc-live-state'){try{const d=JSON.parse(e.newValue);state={...state,...d.state,widgets:{...state.widgets,...d.state.widgets}};render();if(d.extra?.alert){$('alertName').value=d.extra.alert.name;$('oAlertTitle').textContent=d.extra.alert.type==='follow'?'NOUVEAU FOLLOWER':'NOUVEL ABONNEMENT';$('oAlertName').textContent=d.extra.alert.name;$('oAlertSub').textContent=d.extra.alert.type==='follow'?'Bienvenue dans la communauté !':'Merci pour ton soutien !';$('alertBox').classList.add('show');setTimeout(()=>$('alertBox').classList.remove('show'),5500);}}catch(err){}}});return;}
+try{const saved=JSON.parse(localStorage.getItem('scc-v02'));if(saved)state={...state,...saved,widgets:{...state.widgets,...saved.widgets}};}catch(e){}$('message').value=state.message;$('showText').checked=state.showText;$('ticker').value=state.ticker;$('showTicker').checked=state.showTicker;$('follower').value=state.follower;$('showFollower').checked=state.showFollower;$('goalCurrent').value=state.current;$('goalTarget').value=state.target;$('goalTitle').value=state.title;$('showGoal').checked=state.showGoal;for(const k of Object.keys(state.widgets))$('w'+k[0].toUpperCase()+k.slice(1)).checked=state.widgets[k];$('accentColor').value=state.accent||'#82baff';$('alertDuration').value=state.alertDuration||5;$('alertSound').checked=state.alertSound!==false;render();$('previewFrame').src=new URL(location.href).pathname+'?overlay=1';}
+init();
+</script>
+</body></html>
