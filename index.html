@@ -115,6 +115,10 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
       <img id="twitchAvatar" alt="" width="42" height="42" style="border-radius:50%">
       <div><b id="twitchDisplayName"></b><div class="hint">Compte Twitch connecté</div></div>
     </div>
+    <div id="twitchEventSubBox" class="hidden" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+      <button class="primary" id="eventSubBtn" onclick="setupTwitchEventSub()">Activer les notifications de followers</button>
+      <div id="eventSubStatus" class="authmsg">Configure la réception automatique des nouveaux followers.</div>
+    </div>
   </div>
 </div>
     <div class="authmsg" id="authMsg">Connecte-toi pour envoyer tes modifications à l'overlay.</div></section>
@@ -649,6 +653,7 @@ async function pollTwitchAuthorization(intervalSeconds, deadline){
       }
       $('twitchProfile').classList.remove('hidden');
       $('twitchProfile').style.display = 'flex';
+      $('twitchEventSubBox').classList.remove('hidden');
       $('twitchDeviceExpiry').textContent = 'Ton compte Twitch est maintenant relié à SCC.';
       $('twitchUserCode').textContent = 'CONNECTÉ';
       authMsg('Twitch est connecté à SCC. Ton profil a bien été récupéré.','ok');
@@ -661,6 +666,53 @@ async function pollTwitchAuthorization(intervalSeconds, deadline){
     $('twitchConnectionStatus').textContent = 'La vérification a rencontré un problème.';
     authMsg('Vérification Twitch : ' + (error.message || error),'err');
     if(button) button.disabled = false;
+  }
+}
+
+async function setupTwitchEventSub(){
+  const btn = $('eventSubBtn');
+  const status = $('eventSubStatus');
+  btn.disabled = true;
+  status.textContent = 'Activation des notifications Twitch…';
+  status.className = 'authmsg';
+
+  try{
+    const {data,error} = await sb.auth.getSession();
+    if(error) throw error;
+    session = data.session;
+    if(!session || !session.access_token){
+      throw new Error('Session Supabase expirée. Reconnecte-toi.');
+    }
+
+    const response = await fetch(SB_URL + '/functions/v1/twitch-eventsub-setup',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer ' + session.access_token
+      },
+      body:JSON.stringify({})
+    });
+
+    const result = await response.json();
+    if(!response.ok){
+      throw new Error(result.error || ('Erreur HTTP ' + response.status));
+    }
+
+    const eventStatus = result.status || 'webhook_callback_verification_pending';
+    if(eventStatus === 'enabled'){
+      status.textContent = 'Notifications de followers activées ! 🎉';
+      status.className = 'authmsg ok';
+      btn.textContent = 'Notifications activées';
+    }else{
+      status.textContent = 'Demande envoyée à Twitch. Vérification du webhook en cours…';
+      status.className = 'authmsg ok';
+      btn.textContent = 'Vérification en cours…';
+    }
+  }catch(error){
+    status.textContent = 'Activation impossible : ' + (error.message || error);
+    status.className = 'authmsg err';
+    btn.disabled = false;
   }
 }
 
