@@ -116,11 +116,12 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
       <div><b id="twitchDisplayName"></b><div class="hint">Compte Twitch connecté</div></div>
     </div>
   </div>
-  <div id="twitchEventSubBox" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
-    <button class="primary" id="eventSubBtn" onclick="setupTwitchEventSub()">Activer les notifications de followers</button>
-    <div id="eventSubStatus" class="authmsg">Configure la réception automatique des nouveaux followers.</div>
-  </div>
 </div>
+  <div id="twitchEventSubBox" style="margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:10px;background:#0c1421">
+    <div style="font-weight:800;margin-bottom:8px">TWITCH EVENTSUB</div>
+    <button class="primary" id="eventSubBtn" onclick="setupTwitchEventSub()" disabled>Activer les notifications de followers</button>
+    <div id="eventSubStatus" class="authmsg">Connecte-toi à Supabase pour activer les notifications Twitch.</div>
+  </div>
     <div class="authmsg" id="authMsg">Connecte-toi pour envoyer tes modifications à l'overlay.</div></section>
 
   <section class="panel"><div class="panelhead"><h2>ALERTES</h2><span class="pill">SYNCHRONISÉES</span></div>
@@ -485,6 +486,11 @@ function updateAuthUI(){
   else if(on){p.textContent='NON AUTORISÉ';p.className='pill err';}
   else{p.textContent='DÉCONNECTÉ';p.className='pill err';}
   if(on)$('authUser').textContent=session.user.email||'';
+  const eventBtn=$('eventSubBtn');
+  const eventStatus=$('eventSubStatus');
+  if(eventBtn)eventBtn.disabled=!on;
+  if(eventStatus&&!on)eventStatus.textContent='Connecte-toi à Supabase pour activer les notifications Twitch.';
+  else if(eventStatus&&on&&eventStatus.textContent==='Connecte-toi à Supabase pour activer les notifications Twitch.')eventStatus.textContent='Compte Supabase connecté. Tu peux activer les notifications Twitch.';
 }
 
 async function verifyOwner(){
