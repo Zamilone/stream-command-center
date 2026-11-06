@@ -37,7 +37,7 @@
     <p class="hint">Le thème du studio est local à cet appareil. Il ne modifie pas l'apparence du stream.</p>
   </aside>
   <main class="workspace">
-    <div class="workspace-head"><strong>CANVAS · <span id="sceneName">GAMEPLAY</span></strong><div class="toolbar"><button id="toggleGrid" class="active">Grille</button><button id="centerWidget">Centrer</button><button id="duplicateWidget">Dupliquer</button><button id="deleteWidget">Masquer</button></div></div>
+    <div class="workspace-head"><strong>CANVAS · <span id="sceneName">GAMEPLAY</span></strong><div class="toolbar"><button id="toggleGrid" class="active">Grille</button><button id="centerWidget">Centrer</button><button id="deleteWidget">Masquer</button></div></div>
     <div class="stage-wrap"><div class="stage" id="stage"></div></div>
     <div class="hint">Sélectionne un widget, glisse-le pour le déplacer et utilise la poignée en bas à droite pour le redimensionner. Les réglages détaillés sont à droite.</div>
   </main>
@@ -60,7 +60,7 @@ const META={
  goal:{label:'Objectif',icon:'◎',sample:'Objectif followers',defaults:{x:78,y:12,w:18,h:15,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#ffffff',radius:10,borderColor:'#75e2c0',borderWidth:1,fontFamily:'Inter'}},
  follower:{label:'Dernier follower',icon:'♥',sample:'Dernier follower : Zamilone',defaults:{x:4,y:75,w:25,h:9,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#eaf3ff',radius:9,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter'}},
  ticker:{label:'Bandeau',icon:'≋',sample:'Bienvenue ! • Bonne session à tous !',defaults:{x:4,y:90,w:92,h:7,fontSize:1.0,opacity:100,bg:'#101b2b',color:'#ffffff',radius:8,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter'}},
- alert:{label:'Alerte',icon:'✦',sample:'NOUVEAU FOLLOWER · Invité',defaults:{x:29,y:7,w:42,h:18,fontSize:1.4,opacity:100,bg:'#17283d',color:'#ffffff',radius:14,borderColor:'#a6caff',borderWidth:1,fontFamily:'Inter'}}
+ alert:{label:'Alerte',icon:'✦',sample:'NOUVEAU FOLLOWER · Invité',defaults:{x:38,y:7,w:24,h:18,fontSize:1.4,opacity:100,bg:'#17283d',color:'#ffffff',radius:14,borderColor:'#a6caff',borderWidth:1,fontFamily:'Inter'}}
 };
 const DEFAULTS={message:'Bienvenue sur le live !',ticker:'Bienvenue ! Pense à follow si le live te plaît',follower:'Zamilone',current:12,target:20,title:'Objectif followers',widgets:{text:true,goal:true,follower:true,ticker:true,alert:true},scene:'gameplay'};
 let state={...DEFAULTS},user=null,selected='text',scene='gameplay',dirty=false,saveTimer=null,drag=null;
@@ -99,9 +99,9 @@ function renderProperties(){
 function markDirty(){dirty=true;setStatus('Modifications non enregistrées','');clearTimeout(saveTimer);saveTimer=setTimeout(save,1300)}
 function startDrag(e,id){
  if(e.target.classList.contains('resize')){beginResize(e,id);return}
- selected=id;const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'move',x:e.clientX,y:e.clientY,startX:d.x,startY:d.y,rect};renderProperties();renderList();e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault();
+ selected=id;const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'move',x:e.clientX,y:e.clientY,startX:d.x,startY:d.y,rect};renderProperties();renderList();$('stage').setPointerCapture(e.pointerId);e.preventDefault();
 }
-function beginResize(e,id){const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'resize',x:e.clientX,y:e.clientY,startW:d.w,startH:d.h,rect};e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault()}
+function beginResize(e,id){const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'resize',x:e.clientX,y:e.clientY,startW:d.w,startH:d.h,rect};$('stage').setPointerCapture(e.pointerId);e.preventDefault()}
 $('stage').addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/drag.rect.width*100,dy=(e.clientY-drag.y)/drag.rect.height*100;const d=sceneDesign()[drag.id];if(drag.mode==='move'){d.x=Math.max(0,Math.min(100-d.w,Math.round((drag.startX+dx)*10)/10));d.y=Math.max(0,Math.min(100-d.h,Math.round((drag.startY+dy)*10)/10))}else{d.w=Math.max(3,Math.min(100-d.x,Math.round((drag.startW+dx)*10)/10));d.h=Math.max(3,Math.min(100-d.y,Math.round((drag.startH+dy)*10)/10))}render();});
 $('stage').addEventListener('pointerup',()=>{if(drag){drag=null;markDirty()}});
 $('stage').addEventListener('pointercancel',()=>{drag=null});
@@ -129,7 +129,7 @@ $('themeSelect').onchange=e=>{$('app').className='app'+(e.target.value==='dark'?
 $('copyScenes').onclick=()=>{const current=JSON.parse(JSON.stringify(sceneDesign()));for(const s of SCENES)state.sceneDesigns[s]=JSON.parse(JSON.stringify(current));markDirty();render()};
 $('resetScene').onclick=()=>{if(!confirm('Réinitialiser la disposition de cette scène ?'))return;state.sceneDesigns[scene]=freshDesign();markDirty();render()};
 $('centerWidget').onclick=()=>{const d=sceneDesign()[selected];d.x=(100-d.w)/2;d.y=(100-d.h)/2;markDirty();render()};
-$('duplicateWidget').onclick=()=>{const d=sceneDesign()[selected];const copy={...d,x:Math.min(100-d.w,d.x+3),y:Math.min(100-d.h,d.y+3)};const id=selected+'_copy_'+Date.now();META[id]={...META[selected],label:META[selected].label+' copie',defaults:copy};sceneDesign()[id]=copy;selected=id;markDirty();render()};
+
 $('deleteWidget').onclick=()=>{sceneDesign()[selected].visible=false;markDirty();render()};
 $('showWidget').onclick=()=>{sceneDesign()[selected].visible=true;markDirty();render()};
 $('hideWidget').onclick=()=>{sceneDesign()[selected].visible=false;markDirty();render()};
