@@ -225,7 +225,7 @@ function widgetDesign(id){
     goal:{x:78,y:12,w:18,h:15,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#ffffff',radius:10,borderColor:'#75e2c0',borderWidth:1,fontFamily:'Inter',visible:true},
     follower:{x:4,y:75,w:25,h:9,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#eaf3ff',radius:9,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter',visible:true},
     ticker:{x:4,y:90,w:92,h:7,fontSize:1,opacity:100,bg:'#101b2b',color:'#ffffff',radius:8,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter',visible:true},
-    alert:{x:29,y:7,w:42,h:18,fontSize:1.4,opacity:100,bg:'#17283d',color:'#ffffff',radius:14,borderColor:'#a6caff',borderWidth:1,fontFamily:'Inter',visible:true}
+    alert:{x:38,y:7,w:24,h:18,fontSize:1.4,opacity:100,bg:'#17283d',color:'#ffffff',radius:14,borderColor:'#a6caff',borderWidth:1,fontFamily:'Inter',visible:true}
   };
   const scene=(state.sceneDesigns&&state.sceneDesigns[state.scene])||{};
   return {...base[id],...(scene[id]||{})};
@@ -301,7 +301,7 @@ function applyOverlayState(s,source){
     seenAlerts.add(a.id);
     let play=source==='live';
     if(source==='fetch')play=(Date.now()-(a.at||0))<30000;
-    if(play&&state.widgets.alert)enqueueAlert({type:a.type,name:a.name,duration:a.duration||state.alertDuration,sound:a.sound!==false&&state.alertSound!==false&&a.sound});
+    if(play&&state.widgets.alert&&widgetDesign('alert').visible!==false)enqueueAlert({type:a.type,name:a.name,duration:a.duration||state.alertDuration,sound:a.sound!==false&&state.alertSound!==false&&a.sound});
   }
 }
 
