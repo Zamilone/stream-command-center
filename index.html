@@ -36,8 +36,8 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 .ticker .tag{background:var(--accent);color:#081321;height:100%;display:grid;place-items:center;padding:0 15px;font-size:11px;letter-spacing:1px;position:relative;z-index:1;font-weight:800}
 .ticker .tickerclip{flex:1;overflow:hidden;height:100%;display:flex;align-items:center}
 .ticker .tickertext{white-space:nowrap;padding-left:18px;animation:scroll 20s linear infinite;will-change:transform}
-.alertbox{position:absolute;top:7%;left:50%;transform:translateX(-50%) translateY(-15px) scale(.96);opacity:0;min-width:min(440px,88vw);padding:15px 20px;background:linear-gradient(110deg,#17283def,#272247ef);border:1px solid #a6caff99;border-radius:14px;box-shadow:0 12px 40px #0008;text-align:center;transition:.35s;z-index:5}
-.alertbox.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1);animation:pop .6s ease}
+.alertbox{position:absolute;top:7%;left:50%;transform:translateY(-15px) scale(.96);opacity:0;min-width:min(440px,88vw);padding:15px 20px;background:linear-gradient(110deg,#17283def,#272247ef);border:1px solid #a6caff99;border-radius:14px;box-shadow:0 12px 40px #0008;text-align:center;transition:.35s;z-index:5}
+.alertbox.show{opacity:1;transform:translateY(0) scale(1);animation:pop .6s ease}
 .alertbox .alerttitle{font-size:11px;color:var(--accent);letter-spacing:2px}.alertbox .alertname{font-size:24px;font-weight:850;margin-top:2px}.alertbox .alertsub{font-size:12px;color:#bdcbe0}
 .liveText{position:absolute;top:7%;left:4%;max-width:45%;padding:10px 15px;background:#111b2bd9;border-left:3px solid #b6a0ff;border-radius:4px;font-weight:750;font-size:clamp(14px,2vw,24px);text-shadow:0 2px 6px #000}
 .goalwidget{position:absolute;right:4%;top:12%;width:min(260px,35vw);padding:12px 14px;background:#111b2be8;border:1px solid #75e2c077;border-radius:10px}
@@ -47,7 +47,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 .dbgdot{position:absolute;left:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#777}
 .hidden{display:none!important}
 @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@keyframes pop{0%{transform:translateX(-50%) translateY(-20px) scale(.85)}60%{transform:translateX(-50%) translateY(4px) scale(1.04)}100%{transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes pop{0%{transform:translateY(-20px) scale(.85)}60%{transform:translateY(4px) scale(1.04)}100%{transform:translateY(0) scale(1)}}
 @media(max-width:850px){.wrap{padding:16px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.intro{align-items:start;flex-direction:column}.top{padding:0 15px}}
 @media(max-width:480px){.fields{grid-template-columns:1fr}.full{grid-column:auto}.actions button{flex:1}.panel{padding:14px}}
 </style>
@@ -62,8 +62,8 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 </header>
 <main class="wrap">
 <section class="intro">
-  <div><div class="eyebrow">CONTROL ROOM / VERSION 0.3</div><h1>Ton stream. Tes règles.</h1><p>Configure tes éléments, teste tes alertes : l'overlay du téléphone se met à jour en temps réel.</p></div>
-  <div class="actions"><button onclick="copyOverlayUrl()">⧉ Copier l'URL overlay</button><button onclick="openOverlay()">↗ Ouvrir l'overlay</button><button class="primary" onclick="saveNow()">Enregistrer maintenant</button></div>
+  <div><div class="eyebrow">CONTROL ROOM / VERSION 0.4</div><h1>Ton stream. Tes règles.</h1><p>Configure tes éléments, teste tes alertes : l'overlay du téléphone se met à jour en temps réel.</p></div>
+  <div class="actions"><button onclick="location.href='studio.html'">✦ Ouvrir SCC Studio</button><button onclick="copyOverlayUrl()">⧉ Copier l'URL overlay</button><button onclick="openOverlay()">↗ Ouvrir l'overlay</button><button class="primary" onclick="saveNow()">Enregistrer maintenant</button></div>
 </section>
 <section class="stats">
   <div class="stat"><span>DERNIER FOLLOWER</span><strong id="statFollower">Zamilone</strong><em>● Saisie manuelle</em></div>
@@ -155,7 +155,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
     <div class="toggleline"><span>Bandeau</span><input type="checkbox" id="wTicker"></div>
     <div class="toggleline"><span>Objectif</span><input type="checkbox" id="wGoal"></div></section>
 </div></div>
-<footer class="hint" style="text-align:center;padding:8px 0 25px">SCC v0.3 · Synchronisation temps réel via Supabase</footer>
+<footer class="hint" style="text-align:center;padding:8px 0 25px">SCC v0.4 · Studio visuel et synchronisation temps réel via Supabase</footer>
 </main></div>
 
 <!-- ===================== OVERLAY ===================== -->
@@ -219,6 +219,28 @@ let alertBusy=false, audioCtx=null;
 
 function setText(el,v){if(el.textContent!==v)el.textContent=v;}
 
+function widgetDesign(id){
+  const base={
+    text:{x:4,y:7,w:45,h:14,fontSize:2,opacity:100,bg:'#111b2b',color:'#ffffff',radius:6,borderColor:'#b6a0ff',borderWidth:0,fontFamily:'Inter',visible:true},
+    goal:{x:78,y:12,w:18,h:15,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#ffffff',radius:10,borderColor:'#75e2c0',borderWidth:1,fontFamily:'Inter',visible:true},
+    follower:{x:4,y:75,w:25,h:9,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#eaf3ff',radius:9,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter',visible:true},
+    ticker:{x:4,y:90,w:92,h:7,fontSize:1,opacity:100,bg:'#101b2b',color:'#ffffff',radius:8,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter',visible:true},
+    alert:{x:38,y:7,w:24,h:18,fontSize:1.4,opacity:100,bg:'#17283d',color:'#ffffff',radius:14,borderColor:'#a6caff',borderWidth:1,fontFamily:'Inter',visible:true}
+  };
+  const scene=(state.sceneDesigns&&state.sceneDesigns[state.scene])||{};
+  return {...base[id],...(scene[id]||{})};
+}
+function applyWidgetDesign(id,el){
+  if(!el)return;
+  const d=widgetDesign(id);
+  el.style.left=d.x+'%';el.style.top=d.y+'%';el.style.right='auto';el.style.bottom='auto';
+  el.style.width=d.w+'%';el.style.height=d.h+'%';el.style.transform='none';
+  el.style.opacity=String(Math.max(0,Math.min(100,Number(d.opacity??100)))/100);
+  el.style.background=d.bg||'';el.style.color=d.color||'';el.style.borderRadius=(d.radius??8)+'px';
+  el.style.borderColor=d.borderColor||'';el.style.borderWidth=(d.borderWidth??1)+'px';el.style.borderStyle='solid';
+  el.style.fontSize='clamp(8px,'+(Number(d.fontSize)||1)+'vw,40px)';
+  el.style.fontFamily=(d.fontFamily||'Inter')+',system-ui,sans-serif';
+}
 function renderOverlay(){
   const w=state.widgets;
   document.documentElement.style.setProperty('--accent',state.accent||'#82baff');
@@ -234,7 +256,13 @@ function renderOverlay(){
   setText($('oGoalTitle'),state.title);
   setText($('oGoalNums'),state.current+' / '+state.target);
   $('oGoalBar').style.width=Math.min(100,state.current/state.target*100)+'%';
-  $('oGoal').classList.toggle('hidden',!(state.showGoal&&w.goal));
+  $('oGoal').classList.toggle('hidden',!(state.showGoal&&w.goal&&widgetDesign('goal').visible!==false));
+  $('oText').classList.toggle('hidden',!(state.showText&&w.text&&state.message&&widgetDesign('text').visible!==false));
+  $('oFollower').classList.toggle('hidden',!(state.showFollower&&w.follower&&widgetDesign('follower').visible!==false));
+  $('oTicker').classList.toggle('hidden',!(state.showTicker&&w.ticker&&widgetDesign('ticker').visible!==false));
+  applyWidgetDesign('text',$('oText'));applyWidgetDesign('goal',$('oGoal'));
+  applyWidgetDesign('follower',$('oFollower'));applyWidgetDesign('ticker',$('oTicker'));
+  applyWidgetDesign('alert',$('alertBox'));
 }
 
 function playSound(){
@@ -273,7 +301,7 @@ function applyOverlayState(s,source){
     seenAlerts.add(a.id);
     let play=source==='live';
     if(source==='fetch')play=(Date.now()-(a.at||0))<30000;
-    if(play&&state.widgets.alert)enqueueAlert({type:a.type,name:a.name,duration:a.duration||state.alertDuration,sound:a.sound!==false&&state.alertSound!==false&&a.sound});
+    if(play&&state.widgets.alert&&widgetDesign('alert').visible!==false)enqueueAlert({type:a.type,name:a.name,duration:a.duration||state.alertDuration,sound:a.sound!==false&&state.alertSound!==false&&a.sound});
   }
 }
 
