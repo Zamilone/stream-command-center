@@ -289,7 +289,7 @@ function alertKey(type){
  return t;
 }
 function alertText(template,a){
- return String(template||'').replace(/\\{(name|amount|message|viewers|tier)\\}/gi,(_,k)=>String(a[k]??(k==='name'?'Invité':'')));
+ return String(template||'').replace(/\{(name|amount|message|viewers|tier)\}/gi,(_,k)=>String(a[k]??(k==='name'?'Invité':'')));
 }
 function enqueueAlert(a){alertQueue.push(a);runAlertQueue();}
 function runAlertQueue(){
@@ -305,7 +305,7 @@ function runAlertQueue(){
  const img=$('oAlertImage'),vid=$('oAlertVideo'),url=cfg.imageUrl||'';
  img.style.display='none';img.removeAttribute('src');vid.style.display='none';vid.pause();vid.removeAttribute('src');
  if(url){
-  if(/\\.(mp4|webm)(\\?|$)/i.test(url)){vid.src=url;vid.style.display='block';vid.load();vid.play().catch(()=>{});}
+  if(/\.(mp4|webm)(\?|$)/i.test(url)){vid.src=url;vid.style.display='block';vid.load();vid.play().catch(()=>{});}
   else{img.src=url;img.style.display='block';}
  }
  box.dataset.animation=cfg.animation||'pop';
