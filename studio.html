@@ -71,7 +71,7 @@ function designFor(id){const d=sceneDesign()[id]||META[id].defaults;return {...M
 function setStatus(t,kind=''){const e=$('saveStatus');e.textContent=t;e.className='status '+kind}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function stageText(id){if(id==='text')return esc(state.message||META.text.sample);if(id==='goal')return esc(state.title||'Objectif')+'<span class="sub">'+(Number(state.current)||0)+' / '+(Number(state.target)||20)+'</span>';if(id==='follower')return '♥ '+esc(state.follower||'Anonyme');if(id==='ticker')return esc(state.ticker||META.ticker.sample);return '✦ NOUVEAU FOLLOWER<span class="sub">'+esc(state.alertName||'Invité')+'</span>'}
-function render(){
+function renderCanvas(){
  const stage=$('stage');stage.innerHTML='';
  for(const id of Object.keys(META)){const d=designFor(id);if(!d.visible)continue;
   const el=document.createElement('div');el.className='canvas-widget'+(selected===id?' selected':'');el.dataset.id=id;
@@ -79,7 +79,9 @@ function render(){
   el.innerHTML=stageText(id)+'<i class="resize" title="Redimensionner"></i>';
   el.addEventListener('pointerdown',e=>startDrag(e,id));stage.appendChild(el);
  }
- $('sceneName').textContent=scene.toUpperCase();$('sceneSelect').value=scene;renderList();renderProperties();
+ $('sceneName').textContent=scene.toUpperCase();$('sceneSelect').value=scene;
+}
+function render(){renderCanvas();renderList();renderProperties();
 }
 function renderList(){
  $('widgetList').innerHTML=Object.keys(META).map(id=>{const d=designFor(id);return '<button class="widget-btn '+(selected===id?'active':'')+'" data-select="'+id+'"><span>'+META[id].icon+'</span><span>'+META[id].label+(d.visible?'':' · masqué')+'</span></button>'}).join('');
@@ -94,7 +96,7 @@ function renderProperties(){
  const d=designFor(selected);$('propertyTitle').textContent=meta.label;$('propertyHint').textContent='Personnalisation de '+meta.label.toLowerCase()+' · scène '+scene;
  let html='<label class="check"><input type="checkbox" data-prop="visible" '+(d.visible?'checked':'')+'> Widget visible dans cette scène</label><div class="divider"></div><div class="two">'+field('Position X (%)','x',d.x,'number',0,100)+field('Position Y (%)','y',d.y,'number',0,100)+field('Largeur (%)','w',d.w,'number',3,100)+field('Hauteur (%)','h',d.h,'number',3,100)+'</div><div class="divider"></div><div class="section-title">APPARENCE</div><div class="two">'+field('Taille du texte (vw)','fontSize',d.fontSize,'number',.5,5,.1)+field('Opacité (%)','opacity',d.opacity,'number',0,100)+field('Arrondi (px)','radius',d.radius,'number',0,60)+field('Bordure (px)','borderWidth',d.borderWidth,'number',0,8)+'</div>'+field('Couleur du texte','color',d.color,'color')+field('Fond','bg',d.bg,'color')+field('Couleur de bordure','borderColor',d.borderColor,'color')+'<div class="field"><label>Police</label><select data-prop="fontFamily"><option '+(d.fontFamily==='Inter'?'selected':'')+'>Inter</option><option '+(d.fontFamily==='Arial'?'selected':'')+'>Arial</option><option '+(d.fontFamily==='Georgia'?'selected':'')+'>Georgia</option><option '+(d.fontFamily==='Verdana'?'selected':'')+'>Verdana</option><option '+(d.fontFamily==='monospace'?'selected':'')+'>monospace</option></select></div>';
  $('propertyFields').innerHTML=html;
- $('propertyFields').querySelectorAll('[data-prop]').forEach(input=>{input.addEventListener('input',()=>{const k=input.dataset.prop;const v=input.type==='checkbox'?input.checked:(input.type==='number'?Number(input.value):input.value);const target=sceneDesign()[selected];target[k]=v;if(k==='visible'){if(!state.widgets)state.widgets={};state.widgets[selected]=v;const flag={text:'showText',goal:'showGoal',follower:'showFollower',ticker:'showTicker'}[selected];if(flag)state[flag]=v;}markDirty();render();});});
+ $('propertyFields').querySelectorAll('[data-prop]').forEach(input=>{input.addEventListener('input',()=>{const k=input.dataset.prop;const v=input.type==='checkbox'?input.checked:(input.type==='number'?Number(input.value):input.value);const target=sceneDesign()[selected];target[k]=v;if(k==='visible'){if(!state.widgets)state.widgets={};state.widgets[selected]=v;const flag={text:'showText',goal:'showGoal',follower:'showFollower',ticker:'showTicker'}[selected];if(flag)state[flag]=v;}markDirty();renderCanvas();renderList();});});
  $('showWidget').disabled=d.visible;$('hideWidget').disabled=!d.visible;
 }
 function markDirty(){dirty=true;setStatus('Modifications non enregistrées','');clearTimeout(saveTimer);saveTimer=setTimeout(save,1300)}
@@ -103,8 +105,8 @@ function startDrag(e,id){
  selected=id;const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'move',x:e.clientX,y:e.clientY,startX:d.x,startY:d.y,rect};renderProperties();renderList();$('stage').setPointerCapture(e.pointerId);e.preventDefault();
 }
 function beginResize(e,id){const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'resize',x:e.clientX,y:e.clientY,startW:d.w,startH:d.h,rect};$('stage').setPointerCapture(e.pointerId);e.preventDefault()}
-$('stage').addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/drag.rect.width*100,dy=(e.clientY-drag.y)/drag.rect.height*100;const d=sceneDesign()[drag.id];if(drag.mode==='move'){d.x=Math.max(0,Math.min(100-d.w,Math.round((drag.startX+dx)*10)/10));d.y=Math.max(0,Math.min(100-d.h,Math.round((drag.startY+dy)*10)/10))}else{d.w=Math.max(3,Math.min(100-d.x,Math.round((drag.startW+dx)*10)/10));d.h=Math.max(3,Math.min(100-d.y,Math.round((drag.startH+dy)*10)/10))}render();});
-$('stage').addEventListener('pointerup',()=>{if(drag){drag=null;markDirty()}});
+$('stage').addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/drag.rect.width*100,dy=(e.clientY-drag.y)/drag.rect.height*100;const d=sceneDesign()[drag.id];if(drag.mode==='move'){d.x=Math.max(0,Math.min(100-d.w,Math.round((drag.startX+dx)*10)/10));d.y=Math.max(0,Math.min(100-d.h,Math.round((drag.startY+dy)*10)/10))}else{d.w=Math.max(3,Math.min(100-d.x,Math.round((drag.startW+dx)*10)/10));d.h=Math.max(3,Math.min(100-d.y,Math.round((drag.startH+dy)*10)/10))}renderCanvas();});
+$('stage').addEventListener('pointerup',()=>{if(drag){drag=null;markDirty();renderList();renderProperties()}});
 $('stage').addEventListener('pointercancel',()=>{drag=null});
 async function init(){
  try{
