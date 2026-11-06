@@ -66,7 +66,8 @@ const DEFAULTS={message:'Bienvenue sur le live !',ticker:'Bienvenue ! Pense à f
 let state={...DEFAULTS},user=null,selected='text',scene='gameplay',dirty=false,saveTimer=null,drag=null;
 function freshDesign(){const o={};for(const k in META)o[k]={...META[k].defaults,visible:true};return o}
 function sceneDesign(){if(!state.sceneDesigns)state.sceneDesigns={};if(!state.sceneDesigns[scene])state.sceneDesigns[scene]=freshDesign();return state.sceneDesigns[scene]}
-function designFor(id){const d=sceneDesign()[id]||META[id].defaults;return {...META[id].defaults,...d,visible:d.visible!==false}}
+function widgetEnabled(id){const flag={text:'showText',goal:'showGoal',follower:'showFollower',ticker:'showTicker'}[id];return state.widgets?.[id]!==false&&(!flag||state[flag]!==false)}
+function designFor(id){const d=sceneDesign()[id]||META[id].defaults;return {...META[id].defaults,...d,visible:d.visible!==false&&widgetEnabled(id)}}
 function setStatus(t,kind=''){const e=$('saveStatus');e.textContent=t;e.className='status '+kind}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function stageText(id){if(id==='text')return esc(state.message||META.text.sample);if(id==='goal')return esc(state.title||'Objectif')+'<span class="sub">'+(Number(state.current)||0)+' / '+(Number(state.target)||20)+'</span>';if(id==='follower')return '♥ '+esc(state.follower||'Anonyme');if(id==='ticker')return esc(state.ticker||META.ticker.sample);return '✦ NOUVEAU FOLLOWER<span class="sub">'+esc(state.alertName||'Invité')+'</span>'}
@@ -93,7 +94,7 @@ function renderProperties(){
  const d=designFor(selected);$('propertyTitle').textContent=meta.label;$('propertyHint').textContent='Personnalisation de '+meta.label.toLowerCase()+' · scène '+scene;
  let html='<label class="check"><input type="checkbox" data-prop="visible" '+(d.visible?'checked':'')+'> Widget visible dans cette scène</label><div class="divider"></div><div class="two">'+field('Position X (%)','x',d.x,'number',0,100)+field('Position Y (%)','y',d.y,'number',0,100)+field('Largeur (%)','w',d.w,'number',3,100)+field('Hauteur (%)','h',d.h,'number',3,100)+'</div><div class="divider"></div><div class="section-title">APPARENCE</div><div class="two">'+field('Taille du texte (vw)','fontSize',d.fontSize,'number',.5,5,.1)+field('Opacité (%)','opacity',d.opacity,'number',0,100)+field('Arrondi (px)','radius',d.radius,'number',0,60)+field('Bordure (px)','borderWidth',d.borderWidth,'number',0,8)+'</div>'+field('Couleur du texte','color',d.color,'color')+field('Fond','bg',d.bg,'color')+field('Couleur de bordure','borderColor',d.borderColor,'color')+'<div class="field"><label>Police</label><select data-prop="fontFamily"><option '+(d.fontFamily==='Inter'?'selected':'')+'>Inter</option><option '+(d.fontFamily==='Arial'?'selected':'')+'>Arial</option><option '+(d.fontFamily==='Georgia'?'selected':'')+'>Georgia</option><option '+(d.fontFamily==='Verdana'?'selected':'')+'>Verdana</option><option '+(d.fontFamily==='monospace'?'selected':'')+'>monospace</option></select></div>';
  $('propertyFields').innerHTML=html;
- $('propertyFields').querySelectorAll('[data-prop]').forEach(input=>{input.addEventListener('input',()=>{const k=input.dataset.prop;const v=input.type==='checkbox'?input.checked:(input.type==='number'?Number(input.value):input.value);const target=sceneDesign()[selected];target[k]=v;markDirty();render();});});
+ $('propertyFields').querySelectorAll('[data-prop]').forEach(input=>{input.addEventListener('input',()=>{const k=input.dataset.prop;const v=input.type==='checkbox'?input.checked:(input.type==='number'?Number(input.value):input.value);const target=sceneDesign()[selected];target[k]=v;if(k==='visible'){if(!state.widgets)state.widgets={};state.widgets[selected]=v;const flag={text:'showText',goal:'showGoal',follower:'showFollower',ticker:'showTicker'}[selected];if(flag)state[flag]=v;}markDirty();render();});});
  $('showWidget').disabled=d.visible;$('hideWidget').disabled=!d.visible;
 }
 function markDirty(){dirty=true;setStatus('Modifications non enregistrées','');clearTimeout(saveTimer);saveTimer=setTimeout(save,1300)}
@@ -130,10 +131,11 @@ $('copyScenes').onclick=()=>{const current=JSON.parse(JSON.stringify(sceneDesign
 $('resetScene').onclick=()=>{if(!confirm('Réinitialiser la disposition de cette scène ?'))return;state.sceneDesigns[scene]=freshDesign();markDirty();render()};
 $('centerWidget').onclick=()=>{const d=sceneDesign()[selected];d.x=(100-d.w)/2;d.y=(100-d.h)/2;markDirty();render()};
 
-$('deleteWidget').onclick=()=>{sceneDesign()[selected].visible=false;markDirty();render()};
-$('showWidget').onclick=()=>{sceneDesign()[selected].visible=true;markDirty();render()};
-$('hideWidget').onclick=()=>{sceneDesign()[selected].visible=false;markDirty();render()};
-$('resetWidget').onclick=()=>{sceneDesign()[selected]={...META[selected].defaults,visible:true};markDirty();render()};
+$('deleteWidget').onclick=()=>setWidgetVisible(false);
+function setWidgetVisible(v){sceneDesign()[selected].visible=v;if(!state.widgets)state.widgets={};state.widgets[selected]=v;const flag={text:'showText',goal:'showGoal',follower:'showFollower',ticker:'showTicker'}[selected];if(flag)state[flag]=v;markDirty();render()}
+$('showWidget').onclick=()=>setWidgetVisible(true);
+$('hideWidget').onclick=()=>setWidgetVisible(false);
+$('resetWidget').onclick=()=>{sceneDesign()[selected]={...META[selected].defaults,visible:true};setWidgetVisible(true)};
 $('toggleGrid').onclick=e=>{const on=$('stage').classList.toggle('grid');e.target.classList.toggle('active',on);$('stage').style.backgroundImage=on?'linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px),linear-gradient(135deg,#172338,#0a101a)':'linear-gradient(135deg,#172338,#0a101a)';$('stage').style.backgroundSize=on?'5% 5%,5% 5%,100% 100%':'100% 100%'};
 try{const t=localStorage.getItem('scc-studio-theme');if(t)$('themeSelect').value=t;$('app').className='app'+(t&&t!=='dark'?' theme-'+t:'')}catch(_){}
 init();
