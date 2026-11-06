@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101521">
+<title>SCC Studio · Éditeur visuel</title>
+<style>
+:root{color-scheme:dark;--bg:#0b101a;--panel:#131c2b;--panel2:#192538;--line:#29384e;--text:#edf4ff;--muted:#8fa2bd;--blue:#82baff;--mint:#75e2c0;--violet:#b6a0ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,sans-serif}button,input,select{font:inherit}button,select,input{border:1px solid var(--line);border-radius:9px;background:#0c1421;color:var(--text);padding:9px}button{cursor:pointer}button:hover{border-color:var(--blue)}button.primary{background:linear-gradient(120deg,#397dc2,#6758bd);border:0}button.active{border-color:var(--blue);background:#203956}.top{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--line);background:#0d1522;gap:12px}.brand{font-weight:900;letter-spacing:1.5px}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:1px}.top-actions{display:flex;gap:8px;align-items:center}.status{font-size:11px;color:var(--muted)}.status.ok{color:var(--mint)}.status.err{color:#ff8f8f}
+.app{display:grid;grid-template-columns:220px minmax(400px,1fr) 280px;min-height:calc(100vh - 62px)}.left,.right{background:#101927;padding:14px;border-right:1px solid var(--line);overflow:auto}.right{border-right:0;border-left:1px solid var(--line)}.section-title{font-size:10px;letter-spacing:1.6px;color:var(--muted);font-weight:800;margin:8px 0 12px}.widget-list{display:grid;gap:7px}.widget-btn{width:100%;text-align:left;display:flex;align-items:center;gap:9px}.widget-btn span:first-child{width:27px;height:27px;display:grid;place-items:center;background:#1c2b40;border-radius:8px}.hint{font-size:11px;color:var(--muted);line-height:1.5}.left select{width:100%}.left .wide{width:100%;margin-top:8px}.workspace{padding:20px;min-width:0;display:flex;flex-direction:column;gap:12px}.workspace-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.workspace-head strong{font-size:13px;letter-spacing:1px}.toolbar{display:flex;gap:7px;flex-wrap:wrap}.toolbar button{font-size:11px}.stage-wrap{width:100%;max-width:1100px;margin:auto;position:relative}.stage{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border:1px solid #465a76;border-radius:12px;background:linear-gradient(135deg,#172338,#0a101a);box-shadow:0 20px 70px #0007;container-type:inline-size}.stage:before{content:"APERÇU 16:9";position:absolute;inset:0;display:grid;place-items:center;color:#ffffff12;font-size:clamp(18px,4cqw,52px);font-weight:900;letter-spacing:5px;pointer-events:none}.canvas-widget{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;overflow:visible;min-width:3%;min-height:3%;border:1px solid #82baff66;border-radius:8px;background:#15243bd9;color:#edf4ff;padding:1%;font-weight:750;cursor:grab;user-select:none;touch-action:none;box-shadow:0 5px 20px #0005;white-space:normal}.canvas-widget:active{cursor:grabbing}.canvas-widget.selected{outline:2px solid #82baff;outline-offset:2px;z-index:20}.canvas-widget .sub{display:block;font-size:.55em;color:#bdcbe0;font-weight:500}.canvas-widget .resize{position:absolute;right:-6px;bottom:-6px;width:13px;height:13px;background:#82baff;border:2px solid #0b101a;border-radius:4px;cursor:nwse-resize;display:none}.canvas-widget.selected .resize{display:block}.canvas-widget[data-id="ticker"]{white-space:nowrap}.empty{padding:16px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px}.right h2{font-size:13px;margin:0 0 4px}.right .subhead{font-size:11px;color:var(--muted);margin-bottom:14px}.field{margin:12px 0}.field label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-bottom:5px}.field input,.field select{width:100%}.field input[type=color]{height:38px;padding:3px}.field input[type=range]{padding:0;accent-color:#82baff}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin:12px 0}.check input{accent-color:#75e2c0}.divider{height:1px;background:var(--line);margin:15px 0}.right .actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.right .actions button{font-size:11px}.notice{padding:10px;border:1px solid #65552f;background:#2a2418;border-radius:9px;color:#f1d59b;font-size:11px;margin-top:14px}.theme-neon{--bg:#090817;--panel:#17132a;--panel2:#241b3b;--line:#4a356d;--blue:#e08bff;--mint:#72f5d0}.theme-light{color-scheme:light;--bg:#e8edf5;--panel:#fff;--panel2:#f4f6fa;--line:#cbd5e1;--text:#172033;--muted:#58677e;--blue:#2767bc}.theme-light .top,.theme-light .left,.theme-light .right{background:#f8fafc}.theme-light .canvas-widget{color:#172033;background:#e6edf8dd}.theme-light .canvas-widget .sub{color:#52627a}
+@media(max-width:1000px){.app{grid-template-columns:180px minmax(300px,1fr)}.right{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px}.right>h2,.right>.subhead,.right>.actions,.right>.notice{grid-column:1/-1}}
+@media(max-width:650px){.app{display:block}.left{border:0;border-bottom:1px solid var(--line)}.widget-list{grid-template-columns:repeat(3,1fr)}.widget-btn{font-size:10px;padding:6px}.workspace{padding:12px}.right{display:block}.top{padding:0 10px}.top-actions button{font-size:10px;padding:7px}.brand{font-size:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">SCC STUDIO <small>ÉDITEUR VISUEL · 16:9</small></div>
+  <div class="top-actions"><span id="saveStatus" class="status">Chargement…</span><button onclick="location.href='./'">← Dashboard</button><button class="primary" id="saveBtn">Enregistrer</button></div>
+</header>
+<div class="app" id="app">
+  <aside class="left">
+    <div class="section-title">SCÈNE</div>
+    <select id="sceneSelect">
+      <option value="gameplay">🎮 Gameplay</option><option value="starting">⏳ Starting Soon</option><option value="brb">☕ BRB</option><option value="ending">🌙 Ending</option>
+    </select>
+    <div class="section-title" style="margin-top:22px">WIDGETS</div>
+    <div class="widget-list" id="widgetList"></div>
+    <div class="divider"></div>
+    <div class="section-title">DISPOSITION</div>
+    <button class="wide" id="copyScenes">Copier cette scène partout</button>
+    <button class="wide" id="resetScene">Réinitialiser la scène</button>
+    <p class="hint">Les positions sont enregistrées séparément par scène. Tu peux garder une base commune en copiant une disposition vers les autres scènes.</p>
+    <div class="divider"></div>
+    <div class="section-title">THÈME DU STUDIO</div>
+    <select id="themeSelect"><option value="dark">Dark premium</option><option value="neon">Néon</option><option value="light">Clair</option></select>
+    <p class="hint">Le thème du studio est local à cet appareil. Il ne modifie pas l'apparence du stream.</p>
+  </aside>
+  <main class="workspace">
+    <div class="workspace-head"><strong>CANVAS · <span id="sceneName">GAMEPLAY</span></strong><div class="toolbar"><button id="toggleGrid" class="active">Grille</button><button id="centerWidget">Centrer</button><button id="duplicateWidget">Dupliquer</button><button id="deleteWidget">Masquer</button></div></div>
+    <div class="stage-wrap"><div class="stage" id="stage"></div></div>
+    <div class="hint">Sélectionne un widget, glisse-le pour le déplacer et utilise la poignée en bas à droite pour le redimensionner. Les réglages détaillés sont à droite.</div>
+  </main>
+  <aside class="right">
+    <h2 id="propertyTitle">Aucun widget sélectionné</h2><div class="subhead" id="propertyHint">Choisis un élément sur le canvas.</div>
+    <div id="propertyFields"><div class="empty">Sélectionne un widget dans la liste ou directement sur le canvas.</div></div>
+    <div class="divider"></div>
+    <div class="actions"><button id="showWidget">Afficher</button><button id="hideWidget">Masquer</button><button id="resetWidget">Réinitialiser</button></div>
+    <div class="notice">Les changements sont visibles ici immédiatement. L'enregistrement met à jour l'état Supabase utilisé par ton overlay PRISM.</div>
+  </aside>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='https://flgcijgbgplfkuifsyby.supabase.co';
+const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
+const $=id=>document.getElementById(id);
+const SCENES=['gameplay','starting','brb','ending'];
+const META={
+ text:{label:'Texte',icon:'T',sample:'Bienvenue sur le live !',defaults:{x:4,y:7,w:45,h:14,fontSize:2.0,opacity:100,bg:'#111b2b',color:'#ffffff',radius:6,borderColor:'#b6a0ff',borderWidth:0,fontFamily:'Inter'}},
+ goal:{label:'Objectif',icon:'◎',sample:'Objectif followers',defaults:{x:78,y:12,w:18,h:15,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#ffffff',radius:10,borderColor:'#75e2c0',borderWidth:1,fontFamily:'Inter'}},
+ follower:{label:'Dernier follower',icon:'♥',sample:'Dernier follower : Zamilone',defaults:{x:4,y:75,w:25,h:9,fontSize:1.1,opacity:100,bg:'#111b2b',color:'#eaf3ff',radius:9,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter'}},
+ ticker:{label:'Bandeau',icon:'≋',sample:'Bienvenue ! • Bonne session à tous !',defaults:{x:4,y:90,w:92,h:7,fontSize:1.0,opacity:100,bg:'#101b2b',color:'#ffffff',radius:8,borderColor:'#82baff',borderWidth:1,fontFamily:'Inter'}},
+ alert:{label:'Alerte',icon:'✦',sample:'NOUVEAU FOLLOWER · Invité',defaults:{x:29,y:7,w:42,h:18,fontSize:1.4,opacity:100,bg:'#17283d',color:'#ffffff',radius:14,borderColor:'#a6caff',borderWidth:1,fontFamily:'Inter'}}
+};
+const DEFAULTS={message:'Bienvenue sur le live !',ticker:'Bienvenue ! Pense à follow si le live te plaît',follower:'Zamilone',current:12,target:20,title:'Objectif followers',widgets:{text:true,goal:true,follower:true,ticker:true,alert:true},scene:'gameplay'};
+let state={...DEFAULTS},user=null,selected='text',scene='gameplay',dirty=false,saveTimer=null,drag=null;
+function freshDesign(){const o={};for(const k in META)o[k]={...META[k].defaults,visible:true};return o}
+function sceneDesign(){if(!state.sceneDesigns)state.sceneDesigns={};if(!state.sceneDesigns[scene])state.sceneDesigns[scene]=freshDesign();return state.sceneDesigns[scene]}
+function designFor(id){const d=sceneDesign()[id]||META[id].defaults;return {...META[id].defaults,...d,visible:d.visible!==false}}
+function setStatus(t,kind=''){const e=$('saveStatus');e.textContent=t;e.className='status '+kind}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function stageText(id){if(id==='text')return esc(state.message||META.text.sample);if(id==='goal')return esc(state.title||'Objectif')+'<span class="sub">'+(Number(state.current)||0)+' / '+(Number(state.target)||20)+'</span>';if(id==='follower')return '♥ '+esc(state.follower||'Anonyme');if(id==='ticker')return esc(state.ticker||META.ticker.sample);return '✦ NOUVEAU FOLLOWER<span class="sub">'+esc(state.alertName||'Invité')+'</span>'}
+function render(){
+ const stage=$('stage');stage.innerHTML='';
+ for(const id of Object.keys(META)){const d=designFor(id);if(!d.visible)continue;
+  const el=document.createElement('div');el.className='canvas-widget'+(selected===id?' selected':'');el.dataset.id=id;
+  el.style.left=d.x+'%';el.style.top=d.y+'%';el.style.width=d.w+'%';el.style.height=d.h+'%';el.style.fontSize='clamp(8px,'+(d.fontSize*1.05)+'cqw,32px)';el.style.opacity=d.opacity/100;el.style.background=d.bg;el.style.color=d.color;el.style.borderRadius=d.radius+'px';el.style.borderColor=d.borderColor;el.style.borderWidth=d.borderWidth+'px';el.style.fontFamily=d.fontFamily+',system-ui,sans-serif';
+  el.innerHTML=stageText(id)+'<i class="resize" title="Redimensionner"></i>';
+  el.addEventListener('pointerdown',e=>startDrag(e,id));stage.appendChild(el);
+ }
+ $('sceneName').textContent=scene.toUpperCase();$('sceneSelect').value=scene;renderList();renderProperties();
+}
+function renderList(){
+ $('widgetList').innerHTML=Object.keys(META).map(id=>{const d=designFor(id);return '<button class="widget-btn '+(selected===id?'active':'')+'" data-select="'+id+'"><span>'+META[id].icon+'</span><span>'+META[id].label+(d.visible?'':' · masqué')+'</span></button>'}).join('');
+ $('widgetList').querySelectorAll('[data-select]').forEach(b=>b.onclick=()=>{selected=b.dataset.select;render()});
+}
+function field(label,key,value,type='number',min,max,step){
+ const attr=type==='number'?' min="'+min+'" max="'+max+'" step="'+(step||1)+'"':'';
+ return '<div class="field"><label>'+label+'</label><input data-prop="'+key+'" type="'+type+'" value="'+esc(value)+'"'+attr+'></div>';
+}
+function renderProperties(){
+ const meta=META[selected];if(!meta)return;
+ const d=designFor(selected);$('propertyTitle').textContent=meta.label;$('propertyHint').textContent='Personnalisation de '+meta.label.toLowerCase()+' · scène '+scene;
+ let html='<label class="check"><input type="checkbox" data-prop="visible" '+(d.visible?'checked':'')+'> Widget visible dans cette scène</label><div class="divider"></div><div class="two">'+field('Position X (%)','x',d.x,'number',0,100)+field('Position Y (%)','y',d.y,'number',0,100)+field('Largeur (%)','w',d.w,'number',3,100)+field('Hauteur (%)','h',d.h,'number',3,100)+'</div><div class="divider"></div><div class="section-title">APPARENCE</div><div class="two">'+field('Taille du texte (vw)','fontSize',d.fontSize,'number',.5,5,.1)+field('Opacité (%)','opacity',d.opacity,'number',0,100)+field('Arrondi (px)','radius',d.radius,'number',0,60)+field('Bordure (px)','borderWidth',d.borderWidth,'number',0,8)+'</div>'+field('Couleur du texte','color',d.color,'color')+field('Fond','bg',d.bg,'color')+field('Couleur de bordure','borderColor',d.borderColor,'color')+'<div class="field"><label>Police</label><select data-prop="fontFamily"><option '+(d.fontFamily==='Inter'?'selected':'')+'>Inter</option><option '+(d.fontFamily==='Arial'?'selected':'')+'>Arial</option><option '+(d.fontFamily==='Georgia'?'selected':'')+'>Georgia</option><option '+(d.fontFamily==='Verdana'?'selected':'')+'>Verdana</option><option '+(d.fontFamily==='monospace'?'selected':'')+'>monospace</option></select></div>';
+ $('propertyFields').innerHTML=html;
+ $('propertyFields').querySelectorAll('[data-prop]').forEach(input=>{input.addEventListener('input',()=>{const k=input.dataset.prop;const v=input.type==='checkbox'?input.checked:(input.type==='number'?Number(input.value):input.value);const target=sceneDesign()[selected];target[k]=v;markDirty();render();});});
+ $('showWidget').disabled=d.visible;$('hideWidget').disabled=!d.visible;
+}
+function markDirty(){dirty=true;setStatus('Modifications non enregistrées','');clearTimeout(saveTimer);saveTimer=setTimeout(save,1300)}
+function startDrag(e,id){
+ if(e.target.classList.contains('resize')){beginResize(e,id);return}
+ selected=id;const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'move',x:e.clientX,y:e.clientY,startX:d.x,startY:d.y,rect};renderProperties();renderList();e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault();
+}
+function beginResize(e,id){const d=designFor(id),rect=$('stage').getBoundingClientRect();drag={id,mode:'resize',x:e.clientX,y:e.clientY,startW:d.w,startH:d.h,rect};e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault()}
+$('stage').addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/drag.rect.width*100,dy=(e.clientY-drag.y)/drag.rect.height*100;const d=sceneDesign()[drag.id];if(drag.mode==='move'){d.x=Math.max(0,Math.min(100-d.w,Math.round((drag.startX+dx)*10)/10));d.y=Math.max(0,Math.min(100-d.h,Math.round((drag.startY+dy)*10)/10))}else{d.w=Math.max(3,Math.min(100-d.x,Math.round((drag.startW+dx)*10)/10));d.h=Math.max(3,Math.min(100-d.y,Math.round((drag.startH+dy)*10)/10))}render();});
+$('stage').addEventListener('pointerup',()=>{if(drag){drag=null;markDirty()}});
+$('stage').addEventListener('pointercancel',()=>{drag=null});
+async function init(){
+ try{
+  const client=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  const {data}=await client.auth.getSession();user=data.session?.user||null;
+  if(!user){setStatus('Connexion requise','err');$('propertyFields').innerHTML='<div class="empty">Connecte-toi d’abord au dashboard SCC, puis recharge SCC Studio.</div>';return}
+  const {data:row,error}=await client.from('scc_state').select('state,owner_id').eq('id','main').maybeSingle();
+  if(error)throw error;if(!row){setStatus('Aucune configuration trouvée','err');return}
+  if(row.owner_id!==user.id){setStatus('Compte non propriétaire','err');return}
+  state={...DEFAULTS,...(row.state||{})};scene=state.scene||'gameplay';if(!state.sceneDesigns)state.sceneDesigns={};sceneDesign();setStatus('Connecté · prêt','ok');render();
+  $('saveBtn').onclick=save;
+ }catch(e){setStatus('Erreur : '+(e.message||e),'err')}
+}
+async function save(){
+ if(!user){setStatus('Connexion requise','err');return}
+ clearTimeout(saveTimer);setStatus('Synchronisation…');
+ const client=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+ state.scene=scene;const payload={...state,_src:'scc-studio',_rev:Date.now()};
+ try{const {data,error}=await client.from('scc_state').update({state:payload,updated_at:new Date().toISOString()}).eq('id','main').eq('owner_id',user.id).select('id');if(error)throw error;if(!data?.length)throw new Error('Aucune ligne modifiée : vérifie le compte propriétaire.');state=payload;dirty=false;setStatus('Synchronisé ✓','ok')}catch(e){setStatus('Échec : '+(e.message||e),'err')}
+}
+$('sceneSelect').onchange=e=>{scene=e.target.value;sceneDesign();selected='text';render();markDirty()};
+$('themeSelect').onchange=e=>{$('app').className='app'+(e.target.value==='dark'?'':' theme-'+e.target.value);try{localStorage.setItem('scc-studio-theme',e.target.value)}catch(_){}};
+$('copyScenes').onclick=()=>{const current=JSON.parse(JSON.stringify(sceneDesign()));for(const s of SCENES)state.sceneDesigns[s]=JSON.parse(JSON.stringify(current));markDirty();render()};
+$('resetScene').onclick=()=>{if(!confirm('Réinitialiser la disposition de cette scène ?'))return;state.sceneDesigns[scene]=freshDesign();markDirty();render()};
+$('centerWidget').onclick=()=>{const d=sceneDesign()[selected];d.x=(100-d.w)/2;d.y=(100-d.h)/2;markDirty();render()};
+$('duplicateWidget').onclick=()=>{const d=sceneDesign()[selected];const copy={...d,x:Math.min(100-d.w,d.x+3),y:Math.min(100-d.h,d.y+3)};const id=selected+'_copy_'+Date.now();META[id]={...META[selected],label:META[selected].label+' copie',defaults:copy};sceneDesign()[id]=copy;selected=id;markDirty();render()};
+$('deleteWidget').onclick=()=>{sceneDesign()[selected].visible=false;markDirty();render()};
+$('showWidget').onclick=()=>{sceneDesign()[selected].visible=true;markDirty();render()};
+$('hideWidget').onclick=()=>{sceneDesign()[selected].visible=false;markDirty();render()};
+$('resetWidget').onclick=()=>{sceneDesign()[selected]={...META[selected].defaults,visible:true};markDirty();render()};
+$('toggleGrid').onclick=e=>{const on=$('stage').classList.toggle('grid');e.target.classList.toggle('active',on);$('stage').style.backgroundImage=on?'linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px),linear-gradient(135deg,#172338,#0a101a)':'linear-gradient(135deg,#172338,#0a101a)';$('stage').style.backgroundSize=on?'5% 5%,5% 5%,100% 100%':'100% 100%'};
+try{const t=localStorage.getItem('scc-studio-theme');if(t)$('themeSelect').value=t;$('app').className='app'+(t&&t!=='dark'?' theme-'+t:'')}catch(_){}
+init();
+</script>
+</body>
+</html>
