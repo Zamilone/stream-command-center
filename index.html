@@ -36,7 +36,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 .ticker .tag{background:var(--accent);color:#081321;height:100%;display:grid;place-items:center;padding:0 15px;font-size:11px;letter-spacing:1px;position:relative;z-index:1;font-weight:800}
 .ticker .tickerclip{flex:1;overflow:hidden;height:100%;display:flex;align-items:center}
 .ticker .tickertext{white-space:nowrap;padding-left:18px;animation:scroll 20s linear infinite;will-change:transform}
-.alertbox{position:absolute;top:7%;left:50%;transform:translateY(-15px) scale(.96);opacity:0;min-width:min(440px,88vw);padding:15px 20px;background:linear-gradient(110deg,#17283def,#272247ef);border:1px solid #a6caff99;border-radius:14px;box-shadow:0 12px 40px #0008;text-align:center;transition:.35s;z-index:5}
+.alertbox{position:absolute;top:7%;left:50%;transform:translateY(-15px) scale(.96);opacity:0;min-width:min(440px,88vw);max-width:min(620px,92vw);padding:15px 20px;background:linear-gradient(110deg,#17283def,#272247ef);border:1px solid #a6caff99;border-radius:14px;box-shadow:0 12px 40px #0008;text-align:center;transition:.35s;z-index:5}.alertmedia{display:none;max-width:100%;max-height:180px;margin:0 auto 8px;object-fit:contain;border-radius:10px}.alertbox[data-animation="fade"].show{animation:alertFade .45s ease}.alertbox[data-animation="slide"].show{animation:alertSlide .5s ease}.alertbox[data-animation="bounce"].show{animation:alertBounce .65s cubic-bezier(.2,1.4,.4,1)}@keyframes alertFade{from{opacity:0}to{opacity:1}}@keyframes alertSlide{from{opacity:0;transform:translate(-50%,18px)}to{opacity:1;transform:translate(-50%,0)}}@keyframes alertBounce{0%{opacity:0;transform:translateY(-30px) scale(.7)}70%{transform:translateY(5px) scale(1.04)}100%{opacity:1;transform:translateY(0) scale(1)}}
 .alertbox.show{opacity:1;transform:translateY(0) scale(1);animation:pop .6s ease}
 .alertbox .alerttitle{font-size:11px;color:var(--accent);letter-spacing:2px}.alertbox .alertname{font-size:24px;font-weight:850;margin-top:2px}.alertbox .alertsub{font-size:12px;color:#bdcbe0}
 .liveText{position:absolute;top:7%;left:4%;max-width:45%;padding:10px 15px;background:#111b2bd9;border-left:3px solid #b6a0ff;border-radius:4px;font-weight:750;font-size:clamp(14px,2vw,24px);text-shadow:0 2px 6px #000}
@@ -166,7 +166,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
   <div class="goalwidget" id="oGoal"><div class="gtop"><span id="oGoalTitle"></span><span id="oGoalNums"></span></div><div class="gsub">Chaque follow nous rapproche du but !</div><div class="gbar"><div id="oGoalBar" style="width:0%"></div></div></div>
   <div class="lastfollow" id="oFollower">♥ Dernier follower : <b id="oFollowerName"></b></div>
   <div class="ticker" id="oTicker"><div class="tag">INFO</div><div class="tickerclip"><div class="tickertext" id="oTickerText"></div></div></div>
-  <div class="alertbox" id="alertBox"><div class="alerttitle" id="oAlertTitle"></div><div class="alertname" id="oAlertName"></div><div class="alertsub" id="oAlertSub"></div></div>
+  <div class="alertbox" id="alertBox"><img class="alertmedia" id="oAlertImage" alt=""><video class="alertmedia" id="oAlertVideo" playsinline muted loop></video><div class="alerttitle" id="oAlertTitle"></div><div class="alertname" id="oAlertName"></div><div class="alertsub" id="oAlertSub"></div></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -185,11 +185,11 @@ const CLIENT_ID=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Da
 const $=id=>document.getElementById(id);
 const uid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'a'+Date.now()+Math.random().toString(16).slice(2);
 
-const defaults={message:"Bienvenue sur le live ! Installe-toi confortablement.",showText:true,ticker:"Bienvenue ! Pense à follow si le live te plaît  •  Discord : bientôt  •  Bonne session à tous !",showTicker:true,follower:"Zamilone",showFollower:true,current:12,target:20,title:"Objectif followers",showGoal:true,scene:'gameplay',accent:'#82baff',alertDuration:5,alertSound:true,alertName:'PixelNinja42',widgets:{text:true,alert:true,follower:true,ticker:true,goal:true},alert:null};
+const defaults={alertSettings:{},message:"Bienvenue sur le live ! Installe-toi confortablement.",showText:true,ticker:"Bienvenue ! Pense à follow si le live te plaît  •  Discord : bientôt  •  Bonne session à tous !",showTicker:true,follower:"Zamilone",showFollower:true,current:12,target:20,title:"Objectif followers",showGoal:true,scene:'gameplay',accent:'#82baff',alertDuration:5,alertSound:true,alertName:'PixelNinja42',widgets:{text:true,alert:true,follower:true,ticker:true,goal:true},alert:null};
 
 function normalize(s){
   s=(s&&typeof s==='object')?s:{};
-  const n={...defaults,...s,widgets:{...defaults.widgets,...(s.widgets||{})}};
+  const n={...defaults,...s,alertSettings:{...(s.alertSettings||{})},widgets:{...defaults.widgets,...(s.widgets||{})}};
   n.current=Math.max(0,Number(n.current)||0);
   n.target=Math.max(1,Number(n.target)||1);
   n.alertDuration=Math.max(2,Math.min(15,Number(n.alertDuration)||5));
@@ -278,18 +278,45 @@ function playSound(){
 }
 function testSound(){if(!playSound())toast('Audio non disponible dans ce navigateur');}
 
+function alertKey(type){
+ const t=String(type||'follow').toLowerCase();
+ if(t.includes('follow'))return 'follow';
+ if(t.includes('subscription.message')||t.includes('resub'))return 'resub';
+ if(t.includes('subscription.gift')||t.includes('gift'))return 'gift';
+ if(t.includes('subscribe')||t==='sub')return 'sub';
+ if(t.includes('cheer')||t.includes('bits'))return 'cheer';
+ if(t.includes('raid'))return 'raid';
+ return t;
+}
+function alertText(template,a){
+ return String(template||'').replace(/\\{(name|amount|message|viewers|tier)\\}/gi,(_,k)=>String(a[k]??(k==='name'?'Invité':'')));
+}
 function enqueueAlert(a){alertQueue.push(a);runAlertQueue();}
 function runAlertQueue(){
-  if(alertBusy||!alertQueue.length)return;
-  alertBusy=true;
-  const a=alertQueue.shift(),box=$('alertBox');
-  const follow=a.type==='follow';
-  $('oAlertTitle').textContent=follow?'NOUVEAU FOLLOWER':'NOUVEL ABONNEMENT';
-  $('oAlertName').textContent=a.name||'Invité';
-  $('oAlertSub').textContent=follow?'Bienvenue dans la communauté !':'Merci pour ton soutien !';
-  box.classList.remove('show');void box.offsetWidth;box.classList.add('show');
-  if(a.sound&&!IS_PREVIEW)playSound();
-  setTimeout(()=>{box.classList.remove('show');setTimeout(()=>{alertBusy=false;runAlertQueue();},500);},Math.max(2,a.duration||5)*1000);
+ if(alertBusy||!alertQueue.length)return;
+ alertBusy=true;
+ const a=alertQueue.shift(),box=$('alertBox'),key=alertKey(a.type),cfg=state.alertSettings?.[key]||{};
+ if(cfg.enabled===false){alertBusy=false;runAlertQueue();return;}
+ const defaults={follow:['NOUVEAU FOLLOWER','Bienvenue dans la communauté !'],sub:['NOUVEL ABONNEMENT','Merci pour ton soutien !'],resub:['RÉABONNEMENT','Merci de rester avec nous !'],gift:['ABONNEMENT OFFERT','Un cadeau pour la communauté !'],cheer:['BITS !','Merci pour les Bits !'],raid:['RAID EN APPROCHE','Bienvenue à tous les viewers !']};
+ const fallback=defaults[key]||['NOUVEL ÉVÉNEMENT','Merci pour ton soutien !'];
+ $('oAlertTitle').textContent=alertText(cfg.title||fallback[0],a);
+ $('oAlertName').textContent=a.name||'Invité';
+ $('oAlertSub').textContent=alertText(cfg.message||fallback[1],a);
+ const img=$('oAlertImage'),vid=$('oAlertVideo'),url=cfg.imageUrl||'';
+ img.style.display='none';img.removeAttribute('src');vid.style.display='none';vid.pause();vid.removeAttribute('src');
+ if(url){
+  if(/\\.(mp4|webm)(\\?|$)/i.test(url)){vid.src=url;vid.style.display='block';vid.load();vid.play().catch(()=>{});}
+  else{img.src=url;img.style.display='block';}
+ }
+ box.dataset.animation=cfg.animation||'pop';
+ box.classList.remove('show');void box.offsetWidth;box.classList.add('show');
+ const soundAllowed=cfg.soundEnabled!==false&&state.alertSound!==false&&a.sound!==false;
+ if(soundAllowed&&!IS_PREVIEW){
+  if(cfg.soundUrl){const audio=new Audio(cfg.soundUrl);audio.volume=Math.max(0,Math.min(1,(Number(cfg.volume??80))/100));audio.play().catch(()=>{});}
+  else playSound();
+ }
+ const duration=Math.max(2,Math.min(30,Number(cfg.duration||a.duration||state.alertDuration)||5));
+ setTimeout(()=>{box.classList.remove('show');vid.pause();setTimeout(()=>{alertBusy=false;runAlertQueue();},500);},duration*1000);
 }
 
 /* source : 'initial' (jamais d'alerte), 'fetch' (alerte seulement si récente), 'live' (realtime / aperçu) */
@@ -301,7 +328,7 @@ function applyOverlayState(s,source){
     seenAlerts.add(a.id);
     let play=source==='live';
     if(source==='fetch')play=(Date.now()-(a.at||0))<30000;
-    if(play&&state.widgets.alert&&widgetDesign('alert').visible!==false)enqueueAlert({type:a.type,name:a.name,duration:a.duration||state.alertDuration,sound:a.sound!==false&&state.alertSound!==false&&a.sound});
+    if(play&&state.widgets.alert&&widgetDesign('alert').visible!==false)enqueueAlert({...a,duration:a.duration||state.alertDuration,sound:a.sound!==false});
   }
 }
 
