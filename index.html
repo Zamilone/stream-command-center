@@ -126,8 +126,8 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 
   <section class="panel"><div class="panelhead"><h2>ALERTES</h2><span class="pill">SYNCHRONISÉES</span></div>
     <label>Nom affiché pour le test</label><input id="alertName">
-    <div class="btnrow"><button class="primary" onclick="triggerAlert('follow')">♥ Tester un follow</button><button onclick="triggerAlert('sub')">✦ Tester un abonnement</button></div>
-    <p class="hint">Chaque test envoie un événement unique à l'overlay (jamais rejoué au rechargement). Elles ne détectent pas encore les vrais événements Twitch.</p></section>
+    <div class="btnrow"><button class="primary" onclick="simulateFollower()">♥ Simuler un follower</button><button onclick="triggerAlert('sub')">✦ Tester un abonnement</button></div>
+    <p class="hint">La simulation met à jour le dernier follower et déclenche une alerte sur l'overlay. Elle ne crée pas de faux événement Twitch et ne teste pas le webhook.</p></section>
 
   <section class="panel"><div class="panelhead"><h2>DERNIER FOLLOWER</h2><span class="hint">Manuel</span></div>
     <label>Pseudo du dernier follower</label><input id="follower">
@@ -732,6 +732,16 @@ function setScene(scene){
   readForm();
   state={...state,...presets[scene],scene};
   loadForm();commit({immediate:true,skipRead:true,msg:'Scène '+scene+' activée'});
+}
+
+function simulateFollower(){
+  readForm();
+  if(!state.widgets.alert){toast('Le widget Alertes est masqué');return;}
+  const name=(state.alertName||'Follower test').trim()||'Follower test';
+  state.follower=name;
+  state.alert={id:uid(),type:'follow',name,at:Date.now(),duration:state.alertDuration,sound:state.alertSound};
+  loadForm();
+  commit({immediate:true,skipRead:true,msg:(session&&isOwner)?'Follower simulé : overlay synchronisé':'Follower simulé en local (non connecté)'});
 }
 
 function triggerAlert(type){
