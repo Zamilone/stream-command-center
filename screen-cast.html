@@ -23,7 +23,7 @@ const topic='scc-cast-'+room;
 const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
 const $=id=>document.getElementById(id);
 $('viewerUrl').textContent=viewerUrl;
-let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false,activeIceServers=[];
+const fallbackIceServers=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];\nlet channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false,activeIceServers=fallbackIceServers,turnAvailable=false;
 function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
 function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
 async function send(event,payload={}){if(!channel)throw new Error('Canal Realtime non connecté');const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
@@ -66,18 +66,31 @@ async function start(){
  if(starting||stream)return;starting=true;$('startBtn').disabled=true;
  try{
   if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('La capture écran n’est pas disponible. Ouvre SCC sur une adresse HTTPS dans Chrome.');
-  // Lancer getDisplayMedia directement pendant le clic utilisateur :
-  // toute attente réseau préalable peut faire perdre l'activation Chrome.
+  // getDisplayMedia doit être appelé directement pendant le clic utilisateur.
   const capturePromise=navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:60}},audio:$('audioCheck').checked});
-  await connectChannel();
   stream=await capturePromise;
   $('localVideo').srcObject=stream;$('placeholder').style.display='none';
   stream.getVideoTracks()[0].addEventListener('ended',()=>stop(true));
-  await negotiateViewer();
   $('pauseBtn').disabled=false;$('stopBtn').disabled=false;
-  status('Capture active · relais TURN prêt. PRISM peut se connecter ou se reconnecter à tout moment.','ok');
- }catch(e){status(e.name==='NotAllowedError'?'Capture annulée. Aucun écran n’a été partagé.':e.message,'err');if(stream)stop(false);}
- finally{starting=false;$('startBtn').disabled=!!stream;}
+  status('Capture locale active. Préparation de la connexion vidéo…');
+  await connectChannel();
+  try{
+   activeIceServers=await loadTurnServers();
+   turnAvailable=true;
+  }catch(turnError){
+   activeIceServers=fallbackIceServers;
+   turnAvailable=false;
+   console.warn('SCC TURN indisponible, repli STUN :',turnError);
+  }
+  await negotiateViewer();
+  if(turnAvailable)status('Capture active · relais TURN prêt. PRISM peut se connecter ou se reconnecter.','ok');
+  else status('Capture active en mode direct STUN. Le relais TURN n’est pas configuré ou indisponible. L’aperçu local reste actif.','err');
+ }catch(e){
+  status(e.name==='NotAllowedError'?'Capture annulée. Aucun écran n’a été partagé.':e.message,'err');
+  if(stream)await stop(false);
+ }finally{
+  starting=false;$('startBtn').disabled=!!stream;
+ }
 }
 async function stop(fromTrack=false){
  if(channel){try{await send('stop',{});}catch(_){}}
