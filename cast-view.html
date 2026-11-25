@@ -7,6 +7,11 @@
 <script>
 const SB_URL='https://flgcijgbgplfkuifsyby.supabase.co';
 const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
+if(!window.supabase){
+  document.getElementById('status').textContent='Erreur : la bibliothèque Supabase ne s’est pas chargée.';
+  document.getElementById('message').textContent='Recharge cette source navigateur et vérifie que le CDN est accessible.';
+  throw new Error('Supabase JS SDK indisponible');
+}
 const supabase=window.supabase.createClient(SB_URL,SB_KEY);
 const room=new URLSearchParams(location.search).get('room');
 const $=id=>document.getElementById(id);
@@ -69,6 +74,7 @@ if(!room||!/^[a-f0-9]{32}$/i.test(room)){setStatus('Adresse de réception invali
 else{
  channel=supabase.channel('scc-cast-'+room,{config:{broadcast:{self:false}}});
  channel.on('broadcast',{event:'offer'},({payload})=>handleOffer(payload));
+ channel.on('broadcast',{event:'host-ready'},()=>{send('viewer-ready',{}).catch(e=>console.warn('Signal viewer-ready impossible',e));});
  channel.on('broadcast',{event:'host-ice'},async({payload})=>{if(pc&&pc.remoteDescription)try{await pc.addIceCandidate(payload.candidate);}catch(e){console.warn(e);}});
  channel.on('broadcast',{event:'stop'},()=>{if(pc){pc.close();pc=null;}stream=null;activeNegotiationId=null;$('remoteVideo').srcObject=null;$('waiting').classList.remove('hidden');setStatus('Partage arrêté. En attente d’un nouveau partage…');});
  channel.subscribe(async status=>{if(status==='SUBSCRIBED'){setStatus('Connecté. En attente du signal vidéo…');await send('viewer-ready',{});}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setStatus('Impossible de rejoindre le canal Realtime : '+status);});
