@@ -66,8 +66,11 @@ async function start(){
  if(starting||stream)return;starting=true;$('startBtn').disabled=true;
  try{
   if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('La capture écran n’est pas disponible. Ouvre SCC sur une adresse HTTPS dans Chrome.');
+  // Lancer getDisplayMedia directement pendant le clic utilisateur :
+  // toute attente réseau préalable peut faire perdre l'activation Chrome.
+  const capturePromise=navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:60}},audio:$('audioCheck').checked});
   await connectChannel();
-  stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:60}},audio:$('audioCheck').checked});
+  stream=await capturePromise;
   $('localVideo').srcObject=stream;$('placeholder').style.display='none';
   stream.getVideoTracks()[0].addEventListener('ended',()=>stop(true));
   await negotiateViewer();
