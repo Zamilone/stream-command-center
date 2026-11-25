@@ -10,26 +10,66 @@ const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
 const supabase=window.supabase.createClient(SB_URL,SB_KEY);
 const room=new URLSearchParams(location.search).get('room');
 const $=id=>document.getElementById(id);
-let channel=null,pc=null,stream=null,fit='contain',sound=false;
-function setStatus(t){$('status').textContent=t;$('message').textContent=t;}\nfunction report(event,payload={}){if(channel)send(event,payload).catch(e=>console.warn('Signal diagnostic impossible',e));}
+let channel=null,pc=null,stream=null,fit='contain',sound=false,activeNegotiationId=null;
+function setStatus(t){$('status').textContent=t;$('message').textContent=t;}
+function report(event,payload={}){if(channel)send(event,payload).catch(e=>console.warn('Signal diagnostic impossible',e));}
 function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
 async function send(event,payload={}){const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
 async function handleOffer(payload){
+ const id=payload?.id;
+ if(!id||id===activeNegotiationId)return;
+ activeNegotiationId=id;
  try{
-  if(pc&&pc.signalingState!=='stable'){pc.close();pc=null;}
-  if(!pc){pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]});pc.ontrack=e=>{stream=e.streams?.[0]||new MediaStream([e.track]);$('remoteVideo').srcObject=stream;$('waiting').classList.add('hidden');$('remoteVideo').muted=!sound;setStatus('Piste vidéo reçue. Démarrage du décodage…');$('remoteVideo').play().then(()=>{const video=$('remoteVideo');const firstFrame=()=>{report('video-playing',{});setStatus('Vidéo reçue et affichée.');};if('requestVideoFrameCallback' in video)video.requestVideoFrameCallback(firstFrame);else video.addEventListener('loadeddata',firstFrame,{once:true});}).catch(err=>{setStatus('Piste reçue, mais lecture bloquée : '+err.message);report('video-error',{message:err.message});});};pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected'){setStatus('Transport connecté. Attente des premières images…');report('viewer-diagnostic',{message:'Transport WebRTC connecté, piste vidéo en attente.'});}else if(pc?.connectionState==='failed'){setStatus('Connexion vidéo échouée : le réseau ne trouve aucun chemin direct. Un relais TURN est probablement nécessaire.');report('viewer-diagnostic',{message:'État WebRTC failed. ICE='+pc.iceConnectionState+'.'});}else if(pc?.connectionState==='disconnected')setStatus('Connexion interrompue…');};pc.oniceconnectionstatechange=()=>{if(pc?.iceConnectionState==='failed'){setStatus('Échec ICE : aucun chemin réseau direct disponible.');report('viewer-diagnostic',{message:'ICE failed. Le réseau ou le routeur peut bloquer le trafic pair-à-pair.'});}};}
-  await pc.setRemoteDescription(payload.sdp);
-  const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await waitIce(pc);
-  await send('answer',{sdp:pc.localDescription});
-  setStatus('Réponse envoyée. Négociation du transport vidéo…');
- }catch(e){setStatus('Erreur WebRTC : '+e.message);}
+  if(pc){pc.ontrack=null;pc.onconnectionstatechange=null;pc.oniceconnectionstatechange=null;pc.close();pc=null;}
+  stream=null;
+  $('remoteVideo').srcObject=null;
+  $('waiting').classList.remove('hidden');
+  const peer=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]});
+  pc=peer;
+  peer.ontrack=e=>{
+   if(pc!==peer)return;
+   stream=e.streams?.[0]||new MediaStream([e.track]);
+   $('remoteVideo').srcObject=stream;
+   $('waiting').classList.add('hidden');
+   $('remoteVideo').muted=!sound;
+   setStatus('Piste vidéo reçue. Démarrage du décodage…');
+   $('remoteVideo').play().then(()=>{
+    const video=$('remoteVideo');
+    const firstFrame=()=>{if(pc!==peer)return;report('video-playing',{id});setStatus('Vidéo reçue et affichée.');};
+    if('requestVideoFrameCallback' in video)video.requestVideoFrameCallback(firstFrame);
+    else video.addEventListener('loadeddata',firstFrame,{once:true});
+   }).catch(err=>{
+    if(pc!==peer)return;
+    setStatus('Piste reçue, mais lecture bloquée : '+err.message);
+    report('video-error',{id,message:err.message});
+   });
+  };
+  peer.onconnectionstatechange=()=>{
+   if(pc!==peer)return;
+   if(peer.connectionState==='connected'){setStatus('Transport connecté. Attente des premières images…');report('viewer-diagnostic',{id,message:'Transport WebRTC connecté, en attente des images vidéo.'});}
+   else if(peer.connectionState==='failed'){setStatus('Connexion vidéo échouée : aucun chemin réseau direct. Un relais TURN peut être nécessaire.');report('viewer-diagnostic',{id,message:'État WebRTC failed. ICE='+peer.iceConnectionState+'.'});}
+   else if(peer.connectionState==='disconnected')setStatus('Connexion interrompue…');
+  };
+  peer.oniceconnectionstatechange=()=>{
+   if(pc===peer&&peer.iceConnectionState==='failed'){setStatus('Échec ICE : aucun chemin réseau direct disponible.');report('viewer-diagnostic',{id,message:'ICE failed. Le réseau ou le routeur peut bloquer le trafic pair-à-pair.'});}
+  };
+  await peer.setRemoteDescription(payload.sdp);
+  const answer=await peer.createAnswer();
+  await peer.setLocalDescription(answer);
+  await waitIce(peer);
+  if(pc!==peer||activeNegotiationId!==id)return;
+  await send('answer',{sdp:peer.localDescription,id});
+  setStatus('Nouvelle connexion négociée. Attente de la vidéo…');
+ }catch(e){
+  if(activeNegotiationId===id){setStatus('Erreur WebRTC : '+e.message);report('viewer-diagnostic',{id,message:'Erreur de négociation : '+e.message});}
+ }
 }
 if(!room||!/^[a-f0-9]{32}$/i.test(room)){setStatus('Adresse de réception invalide.');$('waiting').classList.remove('hidden');}
 else{
  channel=supabase.channel('scc-cast-'+room,{config:{broadcast:{self:false}}});
  channel.on('broadcast',{event:'offer'},({payload})=>handleOffer(payload));
  channel.on('broadcast',{event:'host-ice'},async({payload})=>{if(pc&&pc.remoteDescription)try{await pc.addIceCandidate(payload.candidate);}catch(e){console.warn(e);}});
- channel.on('broadcast',{event:'stop'},()=>{if(pc){pc.close();pc=null;}stream=null;$('remoteVideo').srcObject=null;$('waiting').classList.remove('hidden');setStatus('Partage arrêté. En attente d’un nouveau partage…');});
+ channel.on('broadcast',{event:'stop'},()=>{if(pc){pc.close();pc=null;}stream=null;activeNegotiationId=null;$('remoteVideo').srcObject=null;$('waiting').classList.remove('hidden');setStatus('Partage arrêté. En attente d’un nouveau partage…');});
  channel.subscribe(async status=>{if(status==='SUBSCRIBED'){setStatus('Connecté. En attente du signal vidéo…');await send('viewer-ready',{});}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setStatus('Impossible de rejoindre le canal Realtime : '+status);});
 }
 $('soundBtn').addEventListener('click',async()=>{sound=!sound;$('remoteVideo').muted=!sound;$('soundBtn').textContent=sound?'Couper le son':'Activer le son';try{await $('remoteVideo').play();}catch(_){}});
