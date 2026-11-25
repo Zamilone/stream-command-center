@@ -17,12 +17,18 @@
 <script>
 const SB_URL='https://flgcijgbgplfkuifsyby.supabase.co';
 const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
-const supabase=window.supabase.createClient(SB_URL,SB_KEY);
 const room=crypto.randomUUID().replace(/-/g,'');
 const topic='scc-cast-'+room;
 const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
 const $=id=>document.getElementById(id);
+// Affiche l'adresse immédiatement : elle ne dépend pas du chargement de Supabase.
 $('viewerUrl').textContent=viewerUrl;
+if(!window.supabase){
+  $('status').textContent='Erreur : la bibliothèque Supabase ne s’est pas chargée. Recharge la page ou vérifie le réseau.';
+  $('status').className='status err';
+  throw new Error('Supabase JS SDK indisponible');
+}
+const supabase=window.supabase.createClient(SB_URL,SB_KEY);
 const fallbackIceServers=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];
 let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false,activeIceServers=fallbackIceServers,turnAvailable=false;
 function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
@@ -37,7 +43,7 @@ async function connectChannel(){
  channel.on('broadcast',{event:'video-error'},({payload})=>{if(!payload?.id||payload.id===negotiationId)status('PRISM a reçu la piste, mais ne peut pas lire la vidéo : '+(payload?.message||'erreur de lecture'),'err');});
  channel.on('broadcast',{event:'viewer-diagnostic'},({payload})=>{if(!payload?.id||payload.id===negotiationId)status('Diagnostic PRISM : '+(payload?.message||'état inconnu'));});
  channel.on('broadcast',{event:'viewer-left'},()=>status('La source de réception s’est déconnectée. Elle pourra se reconnecter automatiquement.'));
- await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
+ await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(async s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);try{await send('host-ready',{});}catch(e){console.warn('Signal host-ready non envoyé',e);}resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
 }
 async function loadTurnServers(){
  const {data:{session},error:sessionError}=await supabase.auth.getSession();
