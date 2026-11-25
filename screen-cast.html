@@ -23,7 +23,7 @@ const topic='scc-cast-'+room;
 const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
 const $=id=>document.getElementById(id);
 $('viewerUrl').textContent=viewerUrl;
-let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false;
+let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false,activeIceServers=[];
 function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
 function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
 async function send(event,payload={}){if(!channel)throw new Error('Canal Realtime non connecté');const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
@@ -38,7 +38,7 @@ async function connectChannel(){
  channel.on('broadcast',{event:'viewer-left'},()=>status('La source de réception s’est déconnectée. Elle pourra se reconnecter automatiquement.'));
  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
 }
-async function negotiateViewer(){
+async function loadTurnServers(){\n const {data:{session},error:sessionError}=await supabase.auth.getSession();\n if(sessionError||!session?.access_token)throw new Error('Session SCC introuvable. Connecte-toi au dashboard puis recharge Screen Cast.');\n const {data,error}=await supabase.functions.invoke('scc-turn-credentials');\n if(error)throw new Error('Impossible de récupérer le relais TURN : '+(error.message||'erreur Edge Function'));\n if(!Array.isArray(data?.iceServers)||!data.iceServers.some(server=>(Array.isArray(server.urls)?server.urls:[server.urls]).some(url=>typeof url==='string'&&/^(turn|turns):/i.test(url))))throw new Error(data?.error||'Aucun serveur TURN valide reçu.');\n return data.iceServers;\n}\nasync function negotiateViewer(){
  if(!stream||!channel)return;
  if(negotiating){renegotiateRequested=true;return;}
  negotiating=true;
@@ -46,7 +46,7 @@ async function negotiateViewer(){
   const id=crypto.randomUUID();
   if(pc){pc.close();pc=null;}
   negotiationId=id;
-  const peer=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]});
+  const peer=new RTCPeerConnection({iceServers:activeIceServers});
   pc=peer;
   stream.getTracks().forEach(track=>peer.addTrack(track,stream));
   peer.onconnectionstatechange=()=>{if(pc!==peer)return;if(peer.connectionState==='connected')status('Transport WebRTC connecté. Attente de la première image dans PRISM…');else if(peer.connectionState==='failed')status('Échec du transport WebRTC. Un relais TURN peut être nécessaire sur ce réseau.','err');else if(peer.connectionState==='disconnected')status('Transport interrompu. Tentative de reconnexion…');};
@@ -55,7 +55,7 @@ async function negotiateViewer(){
   await peer.setLocalDescription(offer);
   await waitIce(peer);
   if(pc!==peer)return;
-  await send('offer',{sdp:peer.localDescription,id});
+  await send('offer',{sdp:peer.localDescription,id,iceServers:activeIceServers});
   status('Offre envoyée à PRISM. En attente de la vidéo…');
  }finally{
   negotiating=false;
@@ -75,7 +75,7 @@ async function start(){
   stream.getVideoTracks()[0].addEventListener('ended',()=>stop(true));
   await negotiateViewer();
   $('pauseBtn').disabled=false;$('stopBtn').disabled=false;
-  status('Capture active. PRISM peut se connecter ou se reconnecter à tout moment.');
+  status('Capture active · relais TURN Europe prêt. PRISM peut se connecter ou se reconnecter à tout moment.','ok');
  }catch(e){status(e.name==='NotAllowedError'?'Capture annulée. Aucun écran n’a été partagé.':e.message,'err');if(stream)stop(false);}
  finally{starting=false;$('startBtn').disabled=!!stream;}
 }
