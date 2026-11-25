@@ -17,15 +17,21 @@
 <script>
 const SB_URL='https://flgcijgbgplfkuifsyby.supabase.co';
 const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
-const supabase=window.supabase.createClient(SB_URL,SB_KEY);
-const room=crypto.randomUUID().replace(/-/g,'');
+const room=crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
 const topic='scc-cast-'+room;
 const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
 const $=id=>document.getElementById(id);
+// L'adresse est générée localement : aucune requête réseau n'est nécessaire pour l'afficher.
 $('viewerUrl').textContent=viewerUrl;
 const fallbackIceServers=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];
-let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false,activeIceServers=fallbackIceServers,turnAvailable=false;
+let supabase=null,channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false,activeIceServers=fallbackIceServers,turnAvailable=false;
 function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
+try{
+ if(!window.supabase?.createClient)throw new Error('La bibliothèque Supabase ne s’est pas chargée. Recharge la page ; si le problème persiste, vérifie que jsDelivr n’est pas bloqué.');
+ supabase=window.supabase.createClient(SB_URL,SB_KEY);
+}catch(e){
+ status('Initialisation impossible : '+e.message,'err');
+}
 function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
 async function send(event,payload={}){if(!channel)throw new Error('Canal Realtime non connecté');const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
 async function connectChannel(){
@@ -74,6 +80,7 @@ async function negotiateViewer(){
 async function start(){
  if(starting||stream)return;starting=true;$('startBtn').disabled=true;
  try{
+  if(!supabase)throw new Error('Connexion SCC indisponible : bibliothèque Supabase non initialisée. Recharge la page.');
   if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('La capture écran n’est pas disponible. Ouvre SCC sur une adresse HTTPS dans Chrome.');
   // getDisplayMedia doit être appelé directement pendant le clic utilisateur.
   const capturePromise=navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:60}},audio:$('audioCheck').checked});
