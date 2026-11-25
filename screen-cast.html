@@ -23,17 +23,44 @@ const topic='scc-cast-'+room;
 const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
 const $=id=>document.getElementById(id);
 $('viewerUrl').textContent=viewerUrl;
-let channel=null,pc=null,stream=null,offerSdp=null,paused=false,starting=false;
+let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false;
 function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
 function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
 async function send(event,payload={}){if(!channel)throw new Error('Canal Realtime non connecté');const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
 async function connectChannel(){
  if(channel)return;
  channel=supabase.channel(topic,{config:{broadcast:{self:false}}});
- channel.on('broadcast',{event:'viewer-ready'},async()=>{if(offerSdp)await send('offer',{sdp:offerSdp});});
- channel.on('broadcast',{event:'answer'},async({payload})=>{try{if(pc&&pc.signalingState==='have-local-offer'){await pc.setRemoteDescription(payload.sdp);status('Réponse du téléphone reçue. Vérification du transport vidéo…');}}catch(e){status('Réponse vidéo invalide : '+e.message,'err');}});\n channel.on('broadcast',{event:'video-playing'},()=>status('Vidéo reçue et décodée par le téléphone. Le flux est actif.','ok'));\n channel.on('broadcast',{event:'video-error'},({payload})=>status('Le téléphone a reçu la piste, mais ne peut pas lire la vidéo : '+(payload?.message||'erreur de lecture'),'err'));\n channel.on('broadcast',{event:'viewer-diagnostic'},({payload})=>status('Diagnostic téléphone : '+(payload?.message||'état inconnu')));
- channel.on('broadcast',{event:'viewer-left'},()=>status('La source de réception vient de se déconnecter. Elle peut se reconnecter avec la même URL.'));
+ channel.on('broadcast',{event:'viewer-ready'},()=>{if(stream)negotiateViewer().catch(e=>status('Reconnexion impossible : '+e.message,'err'));});
+ channel.on('broadcast',{event:'answer'},async({payload})=>{try{if(pc&&payload?.id===negotiationId&&pc.signalingState==='have-local-offer'){await pc.setRemoteDescription(payload.sdp);status('Réponse reçue. Vérification du transport vidéo…');}}catch(e){status('Réponse vidéo invalide : '+e.message,'err');}});
+ channel.on('broadcast',{event:'video-playing'},({payload})=>{if(payload?.id===negotiationId)status('Vidéo reçue et décodée par PRISM. Le flux est actif.','ok');});
+ channel.on('broadcast',{event:'video-error'},({payload})=>{if(!payload?.id||payload.id===negotiationId)status('PRISM a reçu la piste, mais ne peut pas lire la vidéo : '+(payload?.message||'erreur de lecture'),'err');});
+ channel.on('broadcast',{event:'viewer-diagnostic'},({payload})=>{if(!payload?.id||payload.id===negotiationId)status('Diagnostic PRISM : '+(payload?.message||'état inconnu'));});
+ channel.on('broadcast',{event:'viewer-left'},()=>status('La source de réception s’est déconnectée. Elle pourra se reconnecter automatiquement.'));
  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
+}
+async function negotiateViewer(){
+ if(!stream||!channel)return;
+ if(negotiating){renegotiateRequested=true;return;}
+ negotiating=true;
+ try{
+  const id=crypto.randomUUID();
+  if(pc){pc.close();pc=null;}
+  negotiationId=id;
+  const peer=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]});
+  pc=peer;
+  stream.getTracks().forEach(track=>peer.addTrack(track,stream));
+  peer.onconnectionstatechange=()=>{if(pc!==peer)return;if(peer.connectionState==='connected')status('Transport WebRTC connecté. Attente de la première image dans PRISM…');else if(peer.connectionState==='failed')status('Échec du transport WebRTC. Un relais TURN peut être nécessaire sur ce réseau.','err');else if(peer.connectionState==='disconnected')status('Transport interrompu. Tentative de reconnexion…');};
+  peer.oniceconnectionstatechange=()=>{if(pc===peer&&peer.iceConnectionState==='failed')status('ICE en échec : aucun chemin réseau utilisable. Un relais TURN peut être nécessaire.','err');};
+  const offer=await peer.createOffer();
+  await peer.setLocalDescription(offer);
+  await waitIce(peer);
+  if(pc!==peer)return;
+  await send('offer',{sdp:peer.localDescription,id});
+  status('Offre envoyée à PRISM. En attente de la vidéo…');
+ }finally{
+  negotiating=false;
+  if(renegotiateRequested&&stream){renegotiateRequested=false;Promise.resolve().then(()=>negotiateViewer()).catch(e=>status('Reconnexion impossible : '+e.message,'err'));}
+ }
 }
 async function start(){
  if(starting||stream)return;starting=true;$('startBtn').disabled=true;
@@ -43,24 +70,18 @@ async function start(){
   stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:60}},audio:$('audioCheck').checked});
   $('localVideo').srcObject=stream;$('placeholder').style.display='none';
   stream.getVideoTracks()[0].addEventListener('ended',()=>stop(true));
-  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-  stream.getTracks().forEach(track=>pc.addTrack(track,stream));
-  pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected')status('Transport WebRTC connecté. En attente de la première image sur le téléphone…');else if(pc?.connectionState==='failed')status('Échec du transport WebRTC. Le réseau bloque probablement la liaison directe ; un relais TURN sera nécessaire.','err');else if(pc?.connectionState==='disconnected')status('Transport interrompu. Vérification de la connexion…');};
-  pc.oniceconnectionstatechange=()=>{if(pc?.iceConnectionState==='failed')status('ICE en échec : aucun chemin réseau utilisable. Un relais TURN peut être nécessaire.','err');};
-  await connectChannel();
-  const offer=await pc.createOffer();await pc.setLocalDescription(offer);await waitIce(pc);
-  offerSdp=pc.localDescription;
-  await send('offer',{sdp:offerSdp});
+  await negotiateViewer();
   $('pauseBtn').disabled=false;$('stopBtn').disabled=false;
-  status('Capture active. Offre envoyée ; attente de la réponse et de la première image…');
+  status('Capture active. PRISM peut se connecter ou se reconnecter à tout moment.');
  }catch(e){status(e.name==='NotAllowedError'?'Capture annulée. Aucun écran n’a été partagé.':e.message,'err');if(stream)stop(false);}
  finally{starting=false;$('startBtn').disabled=!!stream;}
 }
 async function stop(fromTrack=false){
  if(channel){try{await send('stop',{});}catch(_){}}
  if(pc){pc.close();pc=null;}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
- $('localVideo').srcObject=null;$('placeholder').style.display='grid';$('pauseBtn').disabled=true;$('stopBtn').disabled=true;$('startBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Mettre en pause';paused=false;offerSdp=null;
- status(fromTrack?'Le partage a été arrêté depuis le sélecteur Chrome.':'Partage arrêté.'); 
+ negotiationId=null;
+ $('localVideo').srcObject=null;$('placeholder').style.display='grid';$('pauseBtn').disabled=true;$('stopBtn').disabled=true;$('startBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Mettre en pause';paused=false;
+ status(fromTrack?'Le partage a été arrêté depuis le sélecteur Chrome.':'Partage arrêté.');
 }
 $('startBtn').addEventListener('click',start);
 $('stopBtn').addEventListener('click',()=>stop(false));
