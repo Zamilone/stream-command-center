@@ -24,7 +24,7 @@ async function handleOffer(payload){
   stream=null;
   $('remoteVideo').srcObject=null;
   $('waiting').classList.remove('hidden');
-  const peer=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]});
+  const receivedIceServers=Array.isArray(payload.iceServers)?payload.iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];\n  const peer=new RTCPeerConnection({iceServers:receivedIceServers});
   pc=peer;
   peer.ontrack=e=>{
    if(pc!==peer)return;
