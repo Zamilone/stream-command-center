@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b101a"><title>SCC · Screen Cast</title>
+<style>
+:root{color-scheme:dark;--bg:#0b101a;--panel:#141f30;--line:#2b3d56;--text:#edf4ff;--muted:#9aacc5;--blue:#82baff;--mint:#75e2c0;--red:#ff9292}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#1c304b 0,transparent 40%),var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,sans-serif}.wrap{max-width:1100px;margin:auto;padding:28px 18px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:2px}.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#6ab7f7,#7662d2);display:grid;place-items:center;color:#081321}.tag{font-size:11px;color:var(--mint);letter-spacing:1px}.panel{background:linear-gradient(145deg,#17263b,#111a29);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}.hero{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:18px}.eyebrow{font-size:10px;color:var(--blue);letter-spacing:2px;font-weight:900}.hero h1{font-size:clamp(27px,5vw,42px);margin:6px 0}.muted{color:var(--muted)}.preview{aspect-ratio:16/9;background:#03060b;border:1px solid #3a4c65;border-radius:13px;overflow:hidden;display:grid;place-items:center;position:relative}.preview video{width:100%;height:100%;object-fit:contain;background:#000}.placeholder{text-align:center;color:var(--muted);padding:20px}.placeholder b{display:block;color:var(--text);font-size:18px;margin:8px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}button{border:1px solid var(--line);background:#1b2b43;color:var(--text);border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer}button:hover{border-color:var(--blue)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:linear-gradient(120deg,#397dc2,#6758bd);border:0;font-weight:800}.danger{color:var(--red)}.field{margin:10px 0}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}.field input{width:100%;padding:11px;background:#0c1421;border:1px solid var(--line);border-radius:9px;color:var(--text)}.check{display:flex;align-items:center;gap:10px;color:var(--muted);margin-top:12px}.check input{width:17px;height:17px;accent-color:var(--mint)}.status{padding:12px;border-radius:10px;background:#0b1523;border:1px solid var(--line);color:var(--muted);font-size:13px}.status.ok{color:var(--mint)}.status.err{color:var(--red)}.url{font-size:12px;word-break:break-all;color:#c8dcf7;background:#0b1421;padding:12px;border-radius:9px;border:1px solid var(--line);margin-top:10px}.small{font-size:12px}.steps{padding-left:20px;color:var(--muted)}.steps li{margin:7px 0}a{color:var(--blue)}@media(max-width:800px){.grid{grid-template-columns:1fr}.hero{display:block}.top{align-items:flex-start}}
+</style></head><body><main class="wrap">
+<header class="top"><div class="brand"><div class="logo">SCC</div><div>SCREEN CAST<div class="small muted">FULLSCREEN BROADCAST</div></div></div><a href="studio.html">← Retour à SCC Studio</a></header>
+<section class="hero"><div><div class="eyebrow">SCC STUDIO / LIVE TOOLS</div><h1>Partage ton écran.</h1><div class="muted">Capture ton écran, puis affiche-le en plein écran dans ta source navigateur PRISM.</div></div><span class="tag">● WEBRTC READY</span></section>
+<div class="grid"><section class="panel"><div class="eyebrow">APERÇU LOCAL</div><div class="preview" style="margin-top:12px"><video id="localVideo" autoplay muted playsinline></video><div class="placeholder" id="placeholder"><div style="font-size:34px">▣</div><b>Ton écran apparaîtra ici</b><span class="small">La capture ne démarre qu'après ton autorisation.</span></div></div>
+<div class="actions"><button class="primary" id="startBtn">▶ Démarrer le partage</button><button id="pauseBtn" disabled>Ⅱ Mettre en pause</button><button class="danger" id="stopBtn" disabled>■ Arrêter</button></div>
+<label class="check"><input type="checkbox" id="audioCheck"> Inclure l'audio du partage (si proposé par Chrome)</label>
+<div class="status" id="status" style="margin-top:14px">Prêt. Ouvre d'abord la source navigateur PRISM, puis démarre le partage.</div></section>
+<aside><section class="panel"><div class="eyebrow">SOURCE NAVIGATEUR PRISM</div><h2 style="margin:8px 0">Adresse de réception</h2><div class="muted small">Copie cette adresse dans une source navigateur PRISM. Garde-la privée : toute personne qui la possède peut regarder le partage tant qu'il est actif.</div><div class="url" id="viewerUrl">Création de la salle…</div><div class="actions"><button class="primary" id="copyBtn">⧉ Copier l'URL</button><button id="openBtn">↗ Ouvrir l'aperçu</button></div></section>
+<section class="panel"><div class="eyebrow">MISE EN ROUTE</div><ol class="steps"><li>Copie l'adresse de réception.</li><li>Dans PRISM, ajoute une <b>source navigateur</b>.</li><li>Colle l'adresse et règle la source en 1920 × 1080 (ou 1280 × 720).</li><li>Laisse la source ouverte, puis clique sur <b>Démarrer le partage</b> ici.</li><li>Pour terminer, clique sur <b>Arrêter</b>.</li></ol><p class="small muted">Le partage est transmis en direct, sans enregistrement. Chrome affiche son propre sélecteur d'écran et tu dois autoriser la capture.</p></section></aside></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='https://flgcijgbgplfkuifsyby.supabase.co';
+const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
+const supabase=window.supabase.createClient(SB_URL,SB_KEY);
+const room=crypto.randomUUID().replace(/-/g,'');
+const topic='scc-cast-'+room;
+const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
+const $=id=>document.getElementById(id);
+$('viewerUrl').textContent=viewerUrl;
+let channel=null,pc=null,stream=null,offerSdp=null,paused=false,starting=false;
+function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
+function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
+async function send(event,payload={}){if(!channel)throw new Error('Canal Realtime non connecté');const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
+async function connectChannel(){
+ if(channel)return;
+ channel=supabase.channel(topic,{config:{broadcast:{self:false}}});
+ channel.on('broadcast',{event:'viewer-ready'},async()=>{if(offerSdp)await send('offer',{sdp:offerSdp});});
+ channel.on('broadcast',{event:'answer'},async({payload})=>{try{if(pc&&pc.signalingState==='have-local-offer'){await pc.setRemoteDescription(payload.sdp);status('Connexion vidéo établie. Ton écran est envoyé à PRISM.','ok');}}catch(e){status('Réponse vidéo invalide : '+e.message,'err');}});
+ channel.on('broadcast',{event:'viewer-left'},()=>status('La source de réception vient de se déconnecter. Elle peut se reconnecter avec la même URL.'));
+ await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
+}
+async function start(){
+ if(starting||stream)return;starting=true;$('startBtn').disabled=true;
+ try{
+  if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('La capture écran n’est pas disponible. Ouvre SCC sur une adresse HTTPS dans Chrome.');
+  await connectChannel();
+  stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:60}},audio:$('audioCheck').checked});
+  $('localVideo').srcObject=stream;$('placeholder').style.display='none';
+  stream.getVideoTracks()[0].addEventListener('ended',()=>stop(true));
+  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  stream.getTracks().forEach(track=>pc.addTrack(track,stream));
+  pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected')status('Connexion vidéo établie. Ton écran est envoyé à PRISM.','ok');else if(pc?.connectionState==='failed')status('Connexion WebRTC échouée. Vérifie que la source PRISM est ouverte, puis arrête et relance le partage.','err');else if(pc?.connectionState==='disconnected')status('Connexion interrompue. Tentative de reprise…');};
+  pc.oniceconnectionstatechange=()=>{if(pc?.iceConnectionState==='failed')status('Échec réseau WebRTC. Certains réseaux nécessitent un relais TURN.','err');};
+  await connectChannel();
+  const offer=await pc.createOffer();await pc.setLocalDescription(offer);await waitIce(pc);
+  offerSdp=pc.localDescription;
+  await send('offer',{sdp:offerSdp});
+  $('pauseBtn').disabled=false;$('stopBtn').disabled=false;
+  status('Capture active. En attente de la connexion PRISM…','ok');
+ }catch(e){status(e.name==='NotAllowedError'?'Capture annulée. Aucun écran n’a été partagé.':e.message,'err');if(stream)stop(false);}
+ finally{starting=false;$('startBtn').disabled=!!stream;}
+}
+async function stop(fromTrack=false){
+ if(channel){try{await send('stop',{});}catch(_){}}
+ if(pc){pc.close();pc=null;}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+ $('localVideo').srcObject=null;$('placeholder').style.display='grid';$('pauseBtn').disabled=true;$('stopBtn').disabled=true;$('startBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Mettre en pause';paused=false;offerSdp=null;
+ status(fromTrack?'Le partage a été arrêté depuis le sélecteur Chrome.':'Partage arrêté.'); 
+}
+$('startBtn').addEventListener('click',start);
+$('stopBtn').addEventListener('click',()=>stop(false));
+$('pauseBtn').addEventListener('click',()=>{if(!stream)return;paused=!paused;stream.getVideoTracks().forEach(t=>t.enabled=!paused);$('pauseBtn').textContent=paused?'▶ Reprendre':'Ⅱ Mettre en pause';status(paused?'Partage vidéo en pause.':'Partage vidéo repris.',paused?'':'ok');});
+$('copyBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(viewerUrl);$('copyBtn').textContent='✓ Copié !';setTimeout(()=>$('copyBtn').textContent='⧉ Copier l’URL',1600);}catch(_){status('Copie refusée par le navigateur. Sélectionne l’adresse et copie-la manuellement.','err');}});
+$('openBtn').addEventListener('click',()=>window.open(viewerUrl,'_blank','noopener'));
+window.addEventListener('beforeunload',()=>{try{channel?.send({type:'broadcast',event:'stop',payload:{}});channel?.unsubscribe();}catch(_){}pc?.close();stream?.getTracks().forEach(t=>t.stop());});
+</script></body></html>
