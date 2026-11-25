@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000"><title>SCC · Screen Cast Receiver</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font:14px/1.4 Inter,system-ui,sans-serif}.screen{position:fixed;inset:0;background:#000;display:grid;place-items:center}.screen video{width:100%;height:100%;object-fit:contain;background:#000}.waiting{position:absolute;text-align:center;padding:24px;color:#a9b7ca}.logo{font-weight:900;letter-spacing:4px;font-size:13px;color:#82baff}.waiting h1{font-size:clamp(18px,3vw,30px);margin:12px 0 4px;color:#fff}.waiting p{margin:0}.tools{position:fixed;right:14px;bottom:14px;display:flex;gap:8px;opacity:.12;transition:opacity .2s}.tools:hover{opacity:1}.tools button{background:#152238dd;color:#fff;border:1px solid #536781;border-radius:8px;padding:9px 12px;cursor:pointer}.status{position:fixed;left:14px;bottom:14px;padding:7px 10px;border-radius:7px;background:#111a27cc;color:#a9b7ca;font-size:11px;opacity:.45}.hidden{display:none!important}
+</style></head><body><main class="screen"><video id="remoteVideo" autoplay playsinline></video><div class="waiting" id="waiting"><div class="logo">SCC · SCREEN CAST</div><h1>En attente du partage d’écran…</h1><p id="message">Connexion au canal sécurisé par URL secrète.</p></div></main><div class="status" id="status">Connexion…</div><div class="tools"><button id="soundBtn">Activer le son</button><button id="fitBtn">Ajuster : contenir</button><button id="fullBtn">Plein écran</button></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='https://flgcijgbgplfkuifsyby.supabase.co';
+const SB_KEY='sb_publishable_JB64N9CIznIsrkxfu_7foA_GwtE5H5j';
+const supabase=window.supabase.createClient(SB_URL,SB_KEY);
+const room=new URLSearchParams(location.search).get('room');
+const $=id=>document.getElementById(id);
+let channel=null,pc=null,stream=null,fit='contain',sound=false;
+function setStatus(t){$('status').textContent=t;$('message').textContent=t;}
+function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
+async function send(event,payload={}){const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
+async function handleOffer(payload){
+ try{
+  if(pc&&pc.signalingState!=='stable'){pc.close();pc=null;}
+  if(!pc){pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});pc.ontrack=e=>{stream=e.streams[0];$('remoteVideo').srcObject=stream;$('waiting').classList.add('hidden');$('remoteVideo').muted=!sound;$('remoteVideo').play().catch(()=>setStatus('Flux reçu. Clique sur « Activer le son » ou touche l’écran pour lancer la lecture.'));};pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected')setStatus('Flux vidéo connecté');else if(pc?.connectionState==='failed')setStatus('Connexion vidéo échouée.');else if(pc?.connectionState==='disconnected')setStatus('Flux interrompu…');};}
+  await pc.setRemoteDescription(payload.sdp);
+  const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await waitIce(pc);
+  await send('answer',{sdp:pc.localDescription});
+  setStatus('Négociation vidéo en cours…');
+ }catch(e){setStatus('Erreur WebRTC : '+e.message);}
+}
+if(!room||!/^[a-f0-9]{32}$/i.test(room)){setStatus('Adresse de réception invalide.');$('waiting').classList.remove('hidden');}
+else{
+ channel=supabase.channel('scc-cast-'+room,{config:{broadcast:{self:false}}});
+ channel.on('broadcast',{event:'offer'},({payload})=>handleOffer(payload));
+ channel.on('broadcast',{event:'host-ice'},async({payload})=>{if(pc&&pc.remoteDescription)try{await pc.addIceCandidate(payload.candidate);}catch(e){console.warn(e);}});
+ channel.on('broadcast',{event:'stop'},()=>{if(pc){pc.close();pc=null;}stream=null;$('remoteVideo').srcObject=null;$('waiting').classList.remove('hidden');setStatus('Partage arrêté. En attente d’un nouveau partage…');});
+ channel.subscribe(async status=>{if(status==='SUBSCRIBED'){setStatus('Connecté. En attente du signal vidéo…');await send('viewer-ready',{});}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setStatus('Impossible de rejoindre le canal Realtime : '+status);});
+}
+$('soundBtn').addEventListener('click',async()=>{sound=!sound;$('remoteVideo').muted=!sound;$('soundBtn').textContent=sound?'Couper le son':'Activer le son';try{await $('remoteVideo').play();}catch(_){}});
+$('fitBtn').addEventListener('click',()=>{fit=fit==='contain'?'cover':'contain';$('remoteVideo').style.objectFit=fit;$('fitBtn').textContent='Ajuster : '+(fit==='contain'?'contenir':'remplir');});
+$('fullBtn').addEventListener('click',()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();});
+window.addEventListener('beforeunload',()=>{try{channel?.send({type:'broadcast',event:'viewer-left',payload:{}});channel?.unsubscribe();}catch(_){}pc?.close();});
+</script></body></html>
