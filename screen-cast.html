@@ -31,7 +31,7 @@ async function connectChannel(){
  if(channel)return;
  channel=supabase.channel(topic,{config:{broadcast:{self:false}}});
  channel.on('broadcast',{event:'viewer-ready'},async()=>{if(offerSdp)await send('offer',{sdp:offerSdp});});
- channel.on('broadcast',{event:'answer'},async({payload})=>{try{if(pc&&pc.signalingState==='have-local-offer'){await pc.setRemoteDescription(payload.sdp);status('Connexion vidéo établie. Ton écran est envoyé à PRISM.','ok');}}catch(e){status('Réponse vidéo invalide : '+e.message,'err');}});
+ channel.on('broadcast',{event:'answer'},async({payload})=>{try{if(pc&&pc.signalingState==='have-local-offer'){await pc.setRemoteDescription(payload.sdp);status('Réponse du téléphone reçue. Vérification du transport vidéo…');}}catch(e){status('Réponse vidéo invalide : '+e.message,'err');}});\n channel.on('broadcast',{event:'video-playing'},()=>status('Vidéo reçue et décodée par le téléphone. Le flux est actif.','ok'));\n channel.on('broadcast',{event:'video-error'},({payload})=>status('Le téléphone a reçu la piste, mais ne peut pas lire la vidéo : '+(payload?.message||'erreur de lecture'),'err'));\n channel.on('broadcast',{event:'viewer-diagnostic'},({payload})=>status('Diagnostic téléphone : '+(payload?.message||'état inconnu')));
  channel.on('broadcast',{event:'viewer-left'},()=>status('La source de réception vient de se déconnecter. Elle peut se reconnecter avec la même URL.'));
  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
 }
@@ -45,14 +45,14 @@ async function start(){
   stream.getVideoTracks()[0].addEventListener('ended',()=>stop(true));
   pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
   stream.getTracks().forEach(track=>pc.addTrack(track,stream));
-  pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected')status('Connexion vidéo établie. Ton écran est envoyé à PRISM.','ok');else if(pc?.connectionState==='failed')status('Connexion WebRTC échouée. Vérifie que la source PRISM est ouverte, puis arrête et relance le partage.','err');else if(pc?.connectionState==='disconnected')status('Connexion interrompue. Tentative de reprise…');};
-  pc.oniceconnectionstatechange=()=>{if(pc?.iceConnectionState==='failed')status('Échec réseau WebRTC. Certains réseaux nécessitent un relais TURN.','err');};
+  pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected')status('Transport WebRTC connecté. En attente de la première image sur le téléphone…');else if(pc?.connectionState==='failed')status('Échec du transport WebRTC. Le réseau bloque probablement la liaison directe ; un relais TURN sera nécessaire.','err');else if(pc?.connectionState==='disconnected')status('Transport interrompu. Vérification de la connexion…');};
+  pc.oniceconnectionstatechange=()=>{if(pc?.iceConnectionState==='failed')status('ICE en échec : aucun chemin réseau utilisable. Un relais TURN peut être nécessaire.','err');};
   await connectChannel();
   const offer=await pc.createOffer();await pc.setLocalDescription(offer);await waitIce(pc);
   offerSdp=pc.localDescription;
   await send('offer',{sdp:offerSdp});
   $('pauseBtn').disabled=false;$('stopBtn').disabled=false;
-  status('Capture active. En attente de la connexion PRISM…','ok');
+  status('Capture active. Offre envoyée ; attente de la réponse et de la première image…');
  }catch(e){status(e.name==='NotAllowedError'?'Capture annulée. Aucun écran n’a été partagé.':e.message,'err');if(stream)stop(false);}
  finally{starting=false;$('startBtn').disabled=!!stream;}
 }
