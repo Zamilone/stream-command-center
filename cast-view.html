@@ -32,23 +32,56 @@ async function handleOffer(payload){
   const receivedIceServers=Array.isArray(payload.iceServers)?payload.iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];
   const peer=new RTCPeerConnection({iceServers:receivedIceServers});
   pc=peer;
+  let attachedStream=null;
+  let playPromise=null;
+  let firstFrameReported=false;
+  const video=$('remoteVideo');
+  const reportFirstFrame=()=>{
+   if(pc!==peer||activeNegotiationId!==id||firstFrameReported)return;
+   firstFrameReported=true;
+   report('video-playing',{id});
+   setStatus('Vidéo reçue et affichée.');
+  };
   peer.ontrack=e=>{
-   if(pc!==peer)return;
-   stream=e.streams?.[0]||new MediaStream([e.track]);
-   $('remoteVideo').srcObject=stream;
+   if(pc!==peer||activeNegotiationId!==id)return;
+   // Un même MediaStream peut déclencher plusieurs événements ontrack (audio/vidéo).
+   // Ne jamais réassigner srcObject ni relancer play() pour la même instance.
+   const incomingStream=e.streams?.[0]||stream||new MediaStream();
+   if(!e.streams?.[0]&&!incomingStream.getTracks().some(track=>track.id===e.track.id)){
+    incomingStream.addTrack(e.track);
+   }
+   stream=incomingStream;
+   if(video.srcObject!==incomingStream){
+    attachedStream=incomingStream;
+    video.srcObject=incomingStream;
+    playPromise=null;
+    firstFrameReported=false;
+   }else if(attachedStream===incomingStream&&playPromise){
+    return;
+   }
    $('waiting').classList.add('hidden');
-   $('remoteVideo').muted=!sound;
-   setStatus('Piste vidéo reçue. Démarrage du décodage…');
-   $('remoteVideo').play().then(()=>{
-    const video=$('remoteVideo');
-    const firstFrame=()=>{if(pc!==peer)return;report('video-playing',{id});setStatus('Vidéo reçue et affichée.');};
-    if('requestVideoFrameCallback' in video)video.requestVideoFrameCallback(firstFrame);
-    else video.addEventListener('loadeddata',firstFrame,{once:true});
-   }).catch(err=>{
-    if(pc!==peer)return;
-    setStatus('Piste reçue, mais lecture bloquée : '+err.message);
-    report('video-error',{id,message:err.message});
-   });
+   video.muted=!sound;
+   setStatus('Piste reçue. Démarrage du décodage vidéo…');
+   if(!playPromise){
+    const currentStream=incomingStream;
+    playPromise=video.play().then(()=>{
+     if(pc!==peer||activeNegotiationId!==id||video.srcObject!==currentStream)return;
+     if('requestVideoFrameCallback' in video){
+      video.requestVideoFrameCallback(()=>reportFirstFrame());
+     }else{
+      video.addEventListener('loadeddata',reportFirstFrame,{once:true});
+     }
+    }).catch(err=>{
+     // AbortError est normal si une nouvelle négociation remplace l'ancien flux.
+     if(pc!==peer||activeNegotiationId!==id||video.srcObject!==currentStream)return;
+     if(err.name==='AbortError'){
+      playPromise=null;
+      return;
+     }
+     setStatus('Piste reçue, lecture impossible : '+err.message);
+     report('video-error',{id,message:err.message});
+    });
+   }
   };
   peer.onconnectionstatechange=()=>{
    if(pc!==peer)return;
