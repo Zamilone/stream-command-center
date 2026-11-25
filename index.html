@@ -50,6 +50,8 @@ label{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 @keyframes pop{0%{transform:translateY(-20px) scale(.85)}60%{transform:translateY(4px) scale(1.04)}100%{transform:translateY(0) scale(1)}}
 @media(max-width:850px){.wrap{padding:16px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.intro{align-items:start;flex-direction:column}.top{padding:0 15px}}
 @media(max-width:480px){.fields{grid-template-columns:1fr}.full{grid-column:auto}.actions button{flex:1}.panel{padding:14px}}
+
+.scc-custom-widget{position:absolute;display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;white-space:pre-wrap;word-break:break-word;line-height:1.2;padding:1%;font-weight:700;text-shadow:0 1px 3px #0005;pointer-events:none}.scc-custom-widget img{width:100%;height:100%;display:block}
 </style>
 </head>
 <body>
@@ -241,6 +243,7 @@ function applyWidgetDesign(id,el){
   el.style.fontSize='clamp(8px,'+(Number(d.fontSize)||1)+'vw,40px)';
   el.style.fontFamily=(d.fontFamily||'Inter')+',system-ui,sans-serif';
 }
+function renderCustomOverlayWidgets(){const overlay=$('overlay');let layer=$('customOverlayLayer');if(!layer){layer=document.createElement('div');layer.id='customOverlayLayer';layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden';overlay.appendChild(layer);}layer.innerHTML='';const items=(state.sceneDesigns&&state.sceneDesigns[state.scene]&&state.sceneDesigns[state.scene].customWidgets)||[];items.forEach(item=>{if(!item||item.visible===false)return;const el=document.createElement('div');el.className='scc-custom-widget';el.style.left=(Number(item.x)||0)+'%';el.style.top=(Number(item.y)||0)+'%';el.style.width=(Number(item.w)||10)+'%';el.style.height=(Number(item.h)||10)+'%';el.style.opacity=String(Math.max(0,Math.min(100,Number(item.opacity??100)))/100);el.style.background=item.bg||'transparent';el.style.color=item.color||'#fff';el.style.borderRadius=(Number(item.radius)||0)+'px';el.style.border=(Number(item.borderWidth)||0)+'px solid '+(item.borderColor||'transparent');el.style.fontSize='clamp(8px,'+(Number(item.fontSize)||1.5)+'vw,48px)';el.style.fontFamily=(item.fontFamily||'Inter')+',system-ui,sans-serif';el.style.textAlign=item.align||'center';el.style.zIndex=String(100+(Number(item.zIndex)||1));if(item.type==='image'&&item.src){const img=document.createElement('img');img.src=item.src;img.alt=item.name||'';img.style.objectFit=item.fit==='cover'?'cover':'contain';el.appendChild(img);}else el.textContent=item.text||'';layer.appendChild(el);});}
 function renderOverlay(){
   const w=state.widgets;
   document.documentElement.style.setProperty('--accent',state.accent||'#82baff');
@@ -263,6 +266,7 @@ function renderOverlay(){
   applyWidgetDesign('text',$('oText'));applyWidgetDesign('goal',$('oGoal'));
   applyWidgetDesign('follower',$('oFollower'));applyWidgetDesign('ticker',$('oTicker'));
   applyWidgetDesign('alert',$('alertBox'));
+  renderCustomOverlayWidgets();
 }
 
 function playSound(){
