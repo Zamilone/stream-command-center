@@ -23,7 +23,7 @@ const topic='scc-cast-'+room;
 const viewerUrl=new URL('cast-view.html?room='+room,location.href).href;
 const $=id=>document.getElementById(id);
 $('viewerUrl').textContent=viewerUrl;
-let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false;
+let channel=null,pc=null,stream=null,paused=false,starting=false,negotiationId=null,negotiating=false,renegotiateRequested=false;
 function status(msg,kind=''){ $('status').textContent=msg;$('status').className='status '+kind; }
 function waitIce(peer){if(peer.iceGatheringState==='complete')return Promise.resolve();return new Promise(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);setTimeout(resolve,8000);});}
 async function send(event,payload={}){if(!channel)throw new Error('Canal Realtime non connecté');const result=await channel.send({type:'broadcast',event,payload});if(result!=='ok')console.warn('Broadcast status:',result);}
@@ -39,7 +39,8 @@ async function connectChannel(){
  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Délai de connexion Realtime dépassé.')),12000);channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve();}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(new Error('Connexion Realtime impossible : '+s));}});});
 }
 async function negotiateViewer(){
- if(!stream||!channel||negotiating)return;
+ if(!stream||!channel)return;
+ if(negotiating){renegotiateRequested=true;return;}
  negotiating=true;
  try{
   const id=crypto.randomUUID();
@@ -56,7 +57,10 @@ async function negotiateViewer(){
   if(pc!==peer)return;
   await send('offer',{sdp:peer.localDescription,id});
   status('Offre envoyée à PRISM. En attente de la vidéo…');
- }finally{negotiating=false;}
+ }finally{
+  negotiating=false;
+  if(renegotiateRequested&&stream){renegotiateRequested=false;Promise.resolve().then(()=>negotiateViewer()).catch(e=>status('Reconnexion impossible : '+e.message,'err'));}
+ }
 }
 async function start(){
  if(starting||stream)return;starting=true;$('startBtn').disabled=true;
